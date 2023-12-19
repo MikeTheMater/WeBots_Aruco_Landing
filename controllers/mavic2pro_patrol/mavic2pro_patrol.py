@@ -147,7 +147,8 @@ class Mavic (Robot):
         self.target_altitude = 15
 
         while self.step(self.time_step) != -1:
-
+            # Capture image from the camera
+            image = self.camera.getImage()
             # Read sensors
             roll, pitch, yaw = self.imu.getRollPitchYaw()
             x_pos, y_pos, altitude = self.gps.getValues()
