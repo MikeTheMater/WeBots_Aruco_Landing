@@ -141,14 +141,17 @@ class Mavic (Robot):
         pitch_disturbance = 0
         yaw_disturbance = 0
 
+    
+
         # Specify the patrol coordinates
-        waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
+        #waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
+        waypoints=[]
+        
         # target altitude of the robot in meters
-        self.target_altitude = 15
+        self.target_altitude = 5
 
         while self.step(self.time_step) != -1:
-            # Capture image from the camera
-            image = self.camera.getImage()
+
             # Read sensors
             roll, pitch, yaw = self.imu.getRollPitchYaw()
             x_pos, y_pos, altitude = self.gps.getValues()
@@ -157,6 +160,8 @@ class Mavic (Robot):
 
             if altitude > self.target_altitude - 1:
                 # as soon as it reach the target altitude, compute the disturbances to go to the given waypoints.
+                wpt=input("Give me one waypoint ")
+                waypoints.append(wpt)
                 if self.getTime() - t1 > 0.1:
                     yaw_disturbance, pitch_disturbance = self.move_to_target(
                         waypoints)
