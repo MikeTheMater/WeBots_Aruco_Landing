@@ -138,13 +138,45 @@ class Mavic(Robot):
 
         return x_world, y_world
 
-
-
     
     def land(self):
-        self.target_altitude = 0.0
-        for motor in self.motors:
-            motor.setVelocity(0.0)
+        # Gradual descent parameters
+        descent_rate = 0.1  # Meters per time step, adjust as needed
+        touchdown_altitude = 0.2  # Altitude at which to cut off motors, adjust as needed
+
+        while self.step(self.time_step) != -1:
+            _, _, altitude = self.gps.getValues()
+            if altitude <= touchdown_altitude:
+                # If the drone is close enough to the ground, cut off the motors
+                for motor in self.motors:
+                    motor.setVelocity(0.0)
+                break
+
+            # Gradually reduce the altitude
+            self.target_altitude -= descent_rate
+            self.target_altitude = max(self.target_altitude, 0)  # Ensure it doesn't go below zero
+
+            # Update motor speeds for controlled descent
+            roll, pitch, yaw = self.imu.getRollPitchYaw()
+            roll_acceleration, pitch_acceleration, _ = self.gyro.getValues()
+            roll_input = self.K_ROLL_P * clamp(roll, -1, 1) + roll_acceleration
+            pitch_input = self.K_PITCH_P * clamp(pitch, -1, 1) + pitch_acceleration
+            yaw_input = 0  # No yaw adjustment needed during landing
+            clamped_difference_altitude = clamp(self.target_altitude - altitude + self.K_VERTICAL_OFFSET, -1, 1)
+            vertical_input = self.K_VERTICAL_P * pow(clamped_difference_altitude, 3.0)
+
+            front_left_motor_input = self.K_VERTICAL_THRUST + vertical_input - yaw_input + pitch_input - roll_input
+            front_right_motor_input = self.K_VERTICAL_THRUST + vertical_input + yaw_input + pitch_input + roll_input
+            rear_left_motor_input = self.K_VERTICAL_THRUST + vertical_input + yaw_input - pitch_input - roll_input
+            rear_right_motor_input = self.K_VERTICAL_THRUST + vertical_input - yaw_input - pitch_input + roll_input
+
+            self.front_left_motor.setVelocity(front_left_motor_input)
+            self.front_right_motor.setVelocity(-front_right_motor_input)
+            self.rear_left_motor.setVelocity(-rear_left_motor_input)
+            self.rear_right_motor.setVelocity(rear_right_motor_input)
+
+        print("Landing completed.")
+
 
     def move_to_target(self, waypoints, verbose_movement=False, verbose_target=False):
         """
