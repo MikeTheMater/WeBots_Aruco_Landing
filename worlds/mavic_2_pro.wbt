@@ -4,15 +4,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/floors/protos/Floor.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/appearances/protos/SandyGround.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/road/protos/Road.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/appearances/protos/Pavement.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/buildings/protos/Windmill.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/buildings/protos/SmallManor.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/factory/manhole/protos/SquareManhole.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/factory/containers/protos/CardboardBox.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/vehicles/protos/tesla/TeslaModel3Simple.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/trees/protos/Pine.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/trees/protos/Forest.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/dji/mavic/protos/Mavic2Pro.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/advertising_board/protos/AdvertisingBoard.proto"
 
@@ -29,8 +22,8 @@ WorldInfo {
   }
 }
 Viewpoint {
-  orientation -0.2544047874594913 -0.12876660346171134 0.9584870191873365 4.384567727068514
-  position -1.1143802584773348 13.926957228055102 7.914550333536102
+  orientation -0.24609005374583523 -0.09968202700479821 0.9641074519676667 4.2318803918591525
+  position 0.8156074193998242 12.881683852216982 7.7791321679400385
   near 0.2
   follow "Mavic 2 PRO"
   followSmoothness 0.2
@@ -48,47 +41,12 @@ Floor {
 }
 AdvertisingBoard {
   translation -6.36448 3.20497 -0.194525
-  rotation -0.25056300542381216 0.9351130202419243 -0.25056300542381216 -1.6378353071795866
+  rotation -5.60481e-07 1 -2.17518e-07 -1.5707953071795862
   frontTexture [
     "../generated_markers/marker_0.png"
   ]
   displayWidth 0.4
   displayHeight 0.4
-}
-Road {
-  translation -43.8 9.2 0.01
-  rotation 0 0 1 -0.3926996938995747
-  width 3
-  numberOfLanes 1
-  rightBorder FALSE
-  leftBorder FALSE
-  wayPoints [
-    0 0 0
-    100 0 0
-    200 200 0
-  ]
-  splineSubdivision 8
-  appearance Pavement {
-    type "black stone"
-  }
-}
-Windmill {
-  translation -43.8656 -19.8433 0
-  rotation -7.19228e-09 2.6842e-08 1 0.523601
-}
-Windmill {
-  translation -44.258 -27.3356 0
-  rotation -7.19228e-09 2.6842e-08 1 0.523601
-  name "windmill(1)"
-}
-Windmill {
-  translation -46.2448 30.573 0
-  rotation -7.19228e-09 2.6842e-08 1 0.523601
-  name "windmill(2)"
-}
-Windmill {
-  translation -38.75 23.4 0
-  name "windmill(3)"
 }
 SmallManor {
   translation -50.35 11.25 0
@@ -96,68 +54,6 @@ SmallManor {
 }
 SquareManhole {
   translation 0 0 -0.03
-}
-CardboardBox {
-  translation -0.730157 -1.22891 0.3
-  rotation 0 0 1 -1.8325953071795862
-}
-TeslaModel3Simple {
-  translation -41.5139 4.34169 0.31
-  rotation 0 0 1 -0.2618053071795865
-}
-Pine {
-  translation -14.0083 -14.4828 0
-  rotation 0 0 1 2.61799
-}
-Pine {
-  translation -19.6195 -24.3783 0
-  rotation 0 0 1 2.87979
-  name "pine tree(1)"
-}
-Pine {
-  translation -22.0129 6.20205 0
-  name "pine tree(3)"
-}
-Pine {
-  translation -10.6926 -25.1339 0
-  name "pine tree(4)"
-}
-Pine {
-  translation -14.3441 14.5621 0
-  name "pine tree(5)"
-}
-Pine {
-  translation -26.6328 -7.1707 0
-  name "pine tree(6)"
-}
-Pine {
-  translation -9.37029 14.0209 0
-  rotation 0 0 1 -2.6179953071795863
-  name "pine tree(2)"
-}
-Forest {
-  translation 0 0 -0.01
-  shape [
-    200 200
-    200 0
-    50 0
-    50 50
-    -50 50
-    -50 -50
-    50 -50
-    50 0
-    200 0
-    200 -200
-    -200 -200
-    -200 200
-  ]
-  density 0.01
-  type "cherry tree"
-  randomSeed 1
-  maxHeight 12
-  minHeight 6
-  maxRadius 6
-  minRadius 3
 }
 Mavic2Pro {
   hidden position_0_0 1.3352049195947926e-09

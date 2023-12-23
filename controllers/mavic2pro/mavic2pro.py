@@ -1,22 +1,3 @@
-# Copyright 1996-2023 Cyberbotics Ltd.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-"""Example of Python controller for Mavic patrolling around the house.
-   Open the robot window to see the camera view.
-   This demonstrates how to go to specific world coordinates using its GPS, imu and gyroscope.
-   The drone reaches a given altitude and patrols from waypoint to waypoint."""
-
 from controller import Robot
 import sys
 import numpy as np
@@ -192,7 +173,7 @@ class Mavic (Robot):
                 self.rear_left_motor.setVelocity(-rear_left_motor_input)
                 self.rear_right_motor.setVelocity(rear_right_motor_input)
     
-    def detect_aruco_marker(self):
+    def detect_aruco_marker(self, timeout=10):
         # Get the camera device
         self.camera = self.getDevice("camera")
         self.camera.enable(self.time_step)
@@ -201,7 +182,13 @@ class Mavic (Robot):
         aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         aruco_params = cv2.aruco.DetectorParameters()
 
-        while self.step(self.time_step) != -1:  # Run the simulation
+        start_time = self.getTime()
+
+        while self.step(self.time_step) != -1:
+            # Check if the timeout has been exceeded
+            if self.getTime() - start_time > timeout:
+                return None
+
             # Get the camera image
             image = self.camera.getImage()
 
