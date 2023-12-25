@@ -109,11 +109,10 @@ class Mavic(Robot):
         return False
 
     def pixel_to_world(self, x_pixel, y_pixel):
-        # Assuming camera is pointing downwards and altitude is a good approximation of distance to ground
         altitude = self.gps.getValues()[2]
         image_width, image_height = self.camera.getWidth(), self.camera.getHeight()
 
-        # Approximate field of view of the camera
+        # Base field of view of the camera
         camera_fov_horizontal = 1.5708  # 90 degrees in radians
         camera_fov_vertical = 1.5708  # 90 degrees in radians
 
@@ -121,9 +120,9 @@ class Mavic(Robot):
         real_world_per_pixel_x = 2 * altitude * np.tan(camera_fov_horizontal / 2) / image_width
         real_world_per_pixel_y = 2 * altitude * np.tan(camera_fov_vertical / 2) / image_height
 
-        # Adjust based on trial and error calibration
-        calibration_factor_x = -1.2985  # Adjust based on your trials
-        calibration_factor_y = -0.185  # Adjust based on your trials
+        # Dynamic calibration based on altitude
+        calibration_factor_x = self.dynamic_calibration_factor_x(altitude)
+        calibration_factor_y = self.dynamic_calibration_factor_y(altitude)
         real_world_per_pixel_x *= calibration_factor_x
         real_world_per_pixel_y *= calibration_factor_y
 
@@ -131,12 +130,22 @@ class Mavic(Robot):
         x_world_relative = (x_pixel - image_width / 2) * real_world_per_pixel_x
         y_world_relative = (y_pixel - image_height / 2) * real_world_per_pixel_y
 
-        # Convert to absolute world coordinates
         drone_x, drone_y, _ = self.gps.getValues()
         x_world = drone_x + x_world_relative
         y_world = drone_y + y_world_relative
 
         return x_world, y_world
+
+    def dynamic_calibration_factor_x(self, altitude):
+        # Define a function that returns a calibration factor based on altitude
+        # This function should be determined through experimentation
+        return -1.2985  # Placeholder, adjust based on experimentation
+
+    def dynamic_calibration_factor_y(self, altitude):
+        # Define a function that returns a calibration factor based on altitude
+        # This function should be determined through experimentation
+        return -0.185  # Placeholder, adjust based on experimentation
+
 
     
     def land(self):

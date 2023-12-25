@@ -26,11 +26,14 @@ class Mavic(Robot):
         self.current_pose = [0, 0, 0, 0, 0, 0]  # X, Y, Z, yaw, pitch, roll
         self.target_position = [0, 0, 0]
         self.target_altitude = 5
-        self.sinusoidal_path_amplitude = 20  # Increased amplitude
-        self.sinusoidal_path_frequency = 0.5
+        self.sinusoidal_path_amplitude = 200  # Increased amplitude
+        self.sinusoidal_path_frequency = 500  # Increased frequency
         self.marker_detected = False
         self.marker_position = [0, 0]
         self.target_index = 0
+        self.spiral_angle = 0  # Initial angle of the spiral
+        self.current_spiral_radius = 1  # Initial radius of the spiral
+        self.spiral_radius_increment = 5  # How much the radius increases each step
         self.circle_angle = 0
         self.circle_radius = 5  # Initial radius of the circle
         self.circle_radius_increment = 5  # How much the radius increases each step
@@ -105,7 +108,7 @@ class Mavic(Robot):
         
     def update_spiral_waypoints(self):
         # Update the spiral angle and radius
-        self.spiral_angle += np.radians(30)  # Faster angle increment for quicker turns
+        self.spiral_angle += np.radians(-30)  # Faster angle increment for quicker turns
         self.current_spiral_radius += self.spiral_radius_increment  # Increment the radius
 
         # Convert polar coordinates to Cartesian coordinates
@@ -277,7 +280,7 @@ class Mavic(Robot):
         waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
         #waypoints = [[-6.36,3.2]]
         # target altitude of the robot in meters
-        self.target_altitude = 8
+        self.target_altitude = 9
 
         detected_marker = False
         while self.step(self.time_step) != -1:
@@ -289,6 +292,8 @@ class Mavic(Robot):
 
             if not self.marker_detected:
                 if altitude > self.target_altitude - 1:
+                    x_step=x_pos+5
+                    yaw_disturbance, pitch_disturbance = self.move_to_target([[x_step, y_pos]])
                     self.update_circular_waypoints()  # Update waypoints to follow a circular path
                     yaw_disturbance, pitch_disturbance = self.compute_movement()
                 else:

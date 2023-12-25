@@ -22,8 +22,8 @@ WorldInfo {
   }
 }
 Viewpoint {
-  orientation -0.24609005374583523 -0.09968202700479821 0.9641074519676667 4.2318803918591525
-  position 0.8156074193998242 12.881683852216982 7.7791321679400385
+  orientation -0.7033536108390568 0.03286592519648496 0.7100799455558787 3.1857444457129893
+  position -3.4546392248864013 -1.5033835315679998 20.929173905817656
   near 0.2
   follow "Mavic 2 PRO"
   followSmoothness 0.2
@@ -45,8 +45,8 @@ AdvertisingBoard {
   frontTexture [
     "../generated_markers/marker_0.png"
   ]
-  displayWidth 0.4
-  displayHeight 0.4
+  displayWidth 1
+  displayHeight 1
 }
 SmallManor {
   translation -50.35 11.25 0
@@ -56,9 +56,6 @@ SquareManhole {
   translation 0 0 -0.03
 }
 Mavic2Pro {
-  hidden position_0_0 1.3352049195947926e-09
-  hidden position_5_0 -3.1164345234850273e-09
-  hidden position_6_0 -1.185122521128922e-09
   translation 0.008314388090993927 -2.4934327568418163e-05 0.08570872787430439
   rotation 0.034863928104149976 1.0832075905560253e-06 0.9993920684676137 -3.1415626046806784
   cameraSlot [
