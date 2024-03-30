@@ -15,7 +15,7 @@ class Mavic(Robot):
     K_PITCH_P = 30.0          # P constant of the pitch PID.
     MAX_YAW_DISTURBANCE = 0.4
     MAX_PITCH_DISTURBANCE = -1
-    target_precision = 0.5    # Precision between the target position and the robot position in meters
+    target_precision = 0.05    # Precision between the target position and the robot position in meters
 
     def __init__(self):
         Robot.__init__(self)
@@ -36,7 +36,7 @@ class Mavic(Robot):
         self.camera = self.getDevice("camera")
         self.camera.enable(self.time_step)
         self.camera_pitch_motor = self.getDevice("camera pitch")
-        self.camera_pitch_motor.setPosition(1.4)  # Orient the camera downwards
+        self.camera_pitch_motor.setPosition(1.7)  # Orient the camera downwards
         self.imu = self.getDevice("inertial unit")
         self.imu.enable(self.time_step)
         self.gps = self.getDevice("gps")
@@ -109,20 +109,21 @@ class Mavic(Robot):
         return False
 
     def pixel_to_world(self, x_pixel, y_pixel):
+        # Assuming camera is pointing downwards and altitude is a good approximation of distance to ground
         altitude = self.gps.getValues()[2]
         image_width, image_height = self.camera.getWidth(), self.camera.getHeight()
 
-        # Base field of view of the camera
-        camera_fov_horizontal = 1.5708  # 90 degrees in radians
-        camera_fov_vertical = 1.5708  # 90 degrees in radians
+        # Approximate field of view of the camera
+        camera_fov_horizontal = 0.785 
+        camera_fov_vertical = 0.785 
 
         # Calculate real world distance per pixel at current altitude
         real_world_per_pixel_x = 2 * altitude * np.tan(camera_fov_horizontal / 2) / image_width
         real_world_per_pixel_y = 2 * altitude * np.tan(camera_fov_vertical / 2) / image_height
 
-        # Dynamic calibration based on altitude
-        calibration_factor_x = self.dynamic_calibration_factor_x(altitude)
-        calibration_factor_y = self.dynamic_calibration_factor_y(altitude)
+        # Adjust based on trial and error calibration
+        calibration_factor_x = 0.4 # Adjust based on your trials
+        calibration_factor_y = 0.25  # Adjust based on your trials
         real_world_per_pixel_x *= calibration_factor_x
         real_world_per_pixel_y *= calibration_factor_y
 
@@ -130,31 +131,44 @@ class Mavic(Robot):
         x_world_relative = (x_pixel - image_width / 2) * real_world_per_pixel_x
         y_world_relative = (y_pixel - image_height / 2) * real_world_per_pixel_y
 
+        # Convert to absolute world coordinates
         drone_x, drone_y, _ = self.gps.getValues()
         x_world = drone_x + x_world_relative
         y_world = drone_y + y_world_relative
 
         return x_world, y_world
 
-    def dynamic_calibration_factor_x(self, altitude):
-        # Define a function that returns a calibration factor based on altitude
-        # This function should be determined through experimentation
-        return -1.2985  # Placeholder, adjust based on experimentation
+    def update_marker_position(self):
+        # During landing, update marker position
+        marker_detected = self.detect_aruco_marker()
+        if marker_detected:
+            print("Marker detected during landing. Updating marker position.")
+            return True
+        else:
+            print("Marker not detected during landing. Using previous marker position.")
+            return False
 
-    def dynamic_calibration_factor_y(self, altitude):
-        # Define a function that returns a calibration factor based on altitude
-        # This function should be determined through experimentation
-        return -0.185  # Placeholder, adjust based on experimentation
-
-
-    
-    def land(self):
+    def land(self,starting_altitude):
         # Gradual descent parameters
         descent_rate = 0.1  # Meters per time step, adjust as needed
         touchdown_altitude = 0.2  # Altitude at which to cut off motors, adjust as needed
 
+        starting_altitude=int(starting_altitude)
         while self.step(self.time_step) != -1:
             _, _, altitude = self.gps.getValues()
+            roll, pitch, yaw = self.imu.getRollPitchYaw()
+            
+            #if (starting_altitude - altitude < 3.1 and starting_altitude - altitude > 2.9) or (starting_altitude - altitude < 6.1 and starting_altitude - altitude > 5.9) or (starting_altitude - altitude < 9.1 and starting_altitude - altitude > 8.9) or (starting_altitude - altitude < 12.1 and starting_altitude - altitude > 11.9):
+             #   self.update_marker_position()
+              #  yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
+               # print("\n\nMarker position updated during landing at {} from the ground." .format(altitude))
+                #print("Marker position:{}\n" .format(self.marker_position))
+        
+
+
+
+
+
             if altitude <= touchdown_altitude:
                 # If the drone is close enough to the ground, cut off the motors
                 for motor in self.motors:
@@ -249,7 +263,7 @@ class Mavic(Robot):
         waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
         #waypoints = [[-6.36,3.2]]
         # target altitude of the robot in meters
-        self.target_altitude = 5
+        self.target_altitude = 15
 
         detected_marker = False
         while self.step(self.time_step) != -1:
@@ -271,9 +285,9 @@ class Mavic(Robot):
                 # Move towards the marker position and land
                 self.target_position[0:2] = self.marker_position
                 yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
-                if abs(self.current_pose[0] - self.marker_position[0]) < 0.3 and abs(self.current_pose[1] - self.marker_position[1]) < 0.3:
+                if abs(self.current_pose[0] - self.marker_position[0]) < 0.1 and abs(self.current_pose[1] - self.marker_position[1]) < 0.1:
                     print("Landing on the marker.")
-                    self.land()
+                    self.land(altitude)
                     break
 
             # Detect marker and switch to marker mode if found.
