@@ -144,8 +144,8 @@ class Mavic(Robot):
         image_width, image_height = self.camera.getWidth(), self.camera.getHeight()
 
         # Base field of view of the camera
-        camera_fov_horizontal = 1.5708  # 90 degrees in radians
-        camera_fov_vertical = 1.5708  # 90 degrees in radians
+        camera_fov_horizontal =  0.785398  # 90 degrees in radians
+        camera_fov_vertical = 0.785398  # 90 degrees in radians
 
         # Calculate real world distance per pixel at current altitude
         real_world_per_pixel_x = 2 * altitude * np.tan(camera_fov_horizontal / 2) / image_width
@@ -166,18 +166,6 @@ class Mavic(Robot):
         y_world = drone_y + y_world_relative
 
         return x_world, y_world
-
-    def dynamic_calibration_factor_x(self, altitude):
-        # Define a function that returns a calibration factor based on altitude
-        # This function should be determined through experimentation
-        return -1.2985  # Placeholder, adjust based on experimentation
-
-    def dynamic_calibration_factor_y(self, altitude):
-        # Define a function that returns a calibration factor based on altitude
-        # This function should be determined through experimentation
-        return -0.185  # Placeholder, adjust based on experimentation
-
-
     
     def land(self):
         # Gradual descent parameters
@@ -201,7 +189,8 @@ class Mavic(Robot):
             roll_acceleration, pitch_acceleration, _ = self.gyro.getValues()
             roll_input = self.K_ROLL_P * clamp(roll, -1, 1) + roll_acceleration
             pitch_input = self.K_PITCH_P * clamp(pitch, -1, 1) + pitch_acceleration
-            yaw_input = 0  # No yaw adjustment needed during landing
+            yaw_input, pitch_input = self.move_to_target([self.marker_position])
+            #yaw_input = 0  # No yaw adjustment needed during landing
             clamped_difference_altitude = clamp(self.target_altitude - altitude + self.K_VERTICAL_OFFSET, -1, 1)
             vertical_input = self.K_VERTICAL_P * pow(clamped_difference_altitude, 3.0)
 
@@ -294,7 +283,7 @@ class Mavic(Robot):
                 if altitude > self.target_altitude - 1:
                     x_step=x_pos+5
                     yaw_disturbance, pitch_disturbance = self.move_to_target([[x_step, y_pos]])
-                    self.update_circular_waypoints()  # Update waypoints to follow a circular path
+                    self.update_sinusoidal_waypoints(self.getTime())  # Update waypoints to follow a circular path
                     yaw_disturbance, pitch_disturbance = self.compute_movement()
                 else:
                     yaw_disturbance = 0

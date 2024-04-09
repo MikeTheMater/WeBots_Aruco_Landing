@@ -31,6 +31,14 @@ class Mavic(Robot):
         self.marker_detected = False
         self.marker_position = [0, 0]
         self.target_index = 0
+        self.spiral_angle = 100  # Initial angle of the spiral
+        self.current_spiral_radius = 0.01  # Initial radius of the spiral
+        self.spiral_radius_increment = -50  # How much the radius increases each step
+        self.circle_angle = 0
+        self.circle_radius = 5  # Initial radius of the circle
+        self.circle_radius_increment = 5  # How much the radius increases each step
+        self.starting_point = None  # Will be set to the drone's initial position
+        
 
     def init_devices(self):
         self.camera = self.getDevice("camera")
@@ -77,6 +85,16 @@ class Mavic(Robot):
         y = self.starting_point[1] + self.circle_radius * np.sin(self.circle_angle)
         self.target_position[0:2] = [x, y]
 
+    def update_spiral_waypoints(self):
+        # Update the spiral angle and radius
+        self.spiral_angle += np.radians(-30)  # Faster angle increment for quicker turns
+        self.current_spiral_radius += self.spiral_radius_increment  # Increment the radius
+
+        # Convert polar coordinates to Cartesian coordinates
+        x = self.current_spiral_radius * np.cos(self.spiral_angle)
+        y = self.current_spiral_radius * np.sin(self.spiral_angle)
+        self.target_position[0:2] = [x, y]
+    
     def compute_movement(self):
         # Calculate the yaw and pitch disturbances to navigate towards the target position.
         target_yaw = np.arctan2(
@@ -137,7 +155,7 @@ class Mavic(Robot):
 
         # Adjust based on trial and error calibration
         calibration_factor_x = -0.1 # Adjust based on your trials
-        calibration_factor_y = -1.1   # Adjust based on your trials
+        calibration_factor_y = -0.2   # Adjust based on your trials
         real_world_per_pixel_x *= calibration_factor_x
         real_world_per_pixel_y *= calibration_factor_y
 
@@ -253,10 +271,11 @@ class Mavic(Robot):
         roll_disturbance = 0
         pitch_disturbance = 0
         yaw_disturbance = 0
-        
+        count1=0
+        count2=0
         # target altitude of the robot in meters
         self.target_altitude = 15
-
+        first_time = True
         detected_marker = False
         while self.step(self.time_step) != -1:
             # Read sensors and set position.
@@ -264,31 +283,35 @@ class Mavic(Robot):
             x_pos, y_pos, altitude = self.gps.getValues()
             roll_acceleration, pitch_acceleration, _ = self.gyro.getValues()
             self.set_position([x_pos, y_pos, altitude, roll, pitch, yaw])
-            first_time = True
+            
             if not self.marker_detected:
                 if altitude > self.target_altitude - 1:
                     current_time = self.getTime()
                     if first_time:
                         self.update_sinusoidal_waypoints(current_time)
+                        yaw_disturbance, pitch_disturbance = self.compute_movement()
+                    elif not first_time and abs(altitude-5) < 0.1:
+                        self.update_spiral_waypoints()
+                        yaw_disturbance, pitch_disturbance = self.compute_movement()
                     else:
-                        self.update_circular_waypoints()
-                    yaw_disturbance, pitch_disturbance = self.compute_movement()
+                        yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
+                    
                 else:
                     yaw_disturbance = 0
                     pitch_disturbance = 0
-            elif self.marker_detected and self.target_altitude > 5:
+            elif self.marker_detected and not self.target_altitude==5:
                 # Move towards the marker position and lower the altitude to seacrh again. 
                 self.target_position[0:2] = self.marker_position
                 yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
                 if abs(self.current_pose[0] - self.marker_position[0]) < 0.3 and abs(self.current_pose[1] - self.marker_position[1]) < 0.3:
-                    print("Found marker, lowering altitude and look again.")
+                    print("Found marker, lowering altitude and searching again.")
                     self.target_altitude=5
                     self.marker_detected = False
                     continue
             else:
                 self.target_position[0:2] = self.marker_position
                 yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
-                if abs(self.current_pose[0] - self.marker_position[0]) < 0.3 and abs(self.current_pose[1] - self.marker_position[1]) < 0.3:
+                if abs(self.current_pose[0] - self.marker_position[0]) < self.target_precision  and abs(self.current_pose[1] - self.marker_position[1]) < self.target_precision:
                     print("Moved over the marker, landing.")
                     print("Marker position: ", self.marker_position)
                     print("Current position: ", self.current_pose[0:2])
@@ -296,12 +319,18 @@ class Mavic(Robot):
                     break
             
             # Detect marker and switch to marker mode if found.
-            if not self.marker_detected and self.detect_aruco_marker() and altitude > 5:
+            if not self.marker_detected and self.detect_aruco_marker() and first_time:
+                count1+=1
                 print("Marker position: ", self.marker_position)
+                print(count1)
                 first_time = False
                 self.marker_detected = True
-            if self.marker_detected == False and self.target_altitude == 5 and self.detect_aruco_marker():
+            if not first_time and abs(altitude-5) < 0.1 and self.detect_aruco_marker():
+                print("altitude-5=", abs(altitude-5))
+                count2+=1
+                print(count2)
                 print("Marker detected again, moving towards it.")
+                print("Marker position: ", self.marker_position)
                 self.marker_detected = True
 
             # Movement logic using 'yaw_disturbance', 'pitch_disturbance', etc.
@@ -320,6 +349,7 @@ class Mavic(Robot):
             self.front_right_motor.setVelocity(-front_right_motor_input)
             self.rear_left_motor.setVelocity(-rear_left_motor_input)
             self.rear_right_motor.setVelocity(rear_right_motor_input)
+    
     def change_bbox(self):
         speed_value=self.gps.getSpeed()
         speed_vector=self.gps.getSpeedVector()
