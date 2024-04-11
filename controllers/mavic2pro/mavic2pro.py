@@ -1,4 +1,4 @@
-from controller import Robot
+from controller import Robot, Supervisor
 import sys
 import numpy as np
 import cv2
@@ -15,7 +15,7 @@ class Mavic(Robot):
     K_PITCH_P = 30.0          # P constant of the pitch PID.
     MAX_YAW_DISTURBANCE = 0.4
     MAX_PITCH_DISTURBANCE = -1
-    target_precision = 0.2      # Precision between the target position and the robot position in meters
+    target_precision = 0.05    # Precision between the target position and the robot position in meters
 
     def __init__(self):
         Robot.__init__(self)
@@ -31,14 +31,6 @@ class Mavic(Robot):
         self.marker_detected = False
         self.marker_position = [0, 0]
         self.target_index = 0
-        self.spiral_angle = 100  # Initial angle of the spiral
-        self.current_spiral_radius = 0.01  # Initial radius of the spiral
-        self.spiral_radius_increment = -50  # How much the radius increases each step
-        self.circle_angle = 0
-        self.circle_radius = 5  # Initial radius of the circle
-        self.circle_radius_increment = 5  # How much the radius increases each step
-        self.starting_point = None  # Will be set to the drone's initial position
-        
 
     def init_devices(self):
         self.camera = self.getDevice("camera")
@@ -70,31 +62,7 @@ class Mavic(Robot):
         x = current_time * self.sinusoidal_path_frequency
         y = self.sinusoidal_path_amplitude * np.sin(x)
         self.target_position[0:2] = [x, y]
-        
-    def update_circular_waypoints(self):
-        if self.starting_point is None:
-            # Capture the starting point when first called
-            self.starting_point = [self.current_pose[0], self.current_pose[1]]
 
-        # Update the angle and radius for the next point on the circle
-        self.circle_angle += np.radians(-60)  # Increase the angle
-        self.circle_radius += 0.5*self.circle_radius_increment  # Gradually increase the radius
-
-        # Calculate the next point on the circle
-        x = self.starting_point[0] + self.circle_radius * np.cos(self.circle_angle)
-        y = self.starting_point[1] + self.circle_radius * np.sin(self.circle_angle)
-        self.target_position[0:2] = [x, y]
-
-    def update_spiral_waypoints(self):
-        # Update the spiral angle and radius
-        self.spiral_angle += np.radians(-30)  # Faster angle increment for quicker turns
-        self.current_spiral_radius += self.spiral_radius_increment  # Increment the radius
-
-        # Convert polar coordinates to Cartesian coordinates
-        x = self.current_spiral_radius * np.cos(self.spiral_angle)
-        y = self.current_spiral_radius * np.sin(self.spiral_angle)
-        self.target_position[0:2] = [x, y]
-    
     def compute_movement(self):
         # Calculate the yaw and pitch disturbances to navigate towards the target position.
         target_yaw = np.arctan2(
@@ -146,8 +114,8 @@ class Mavic(Robot):
         image_width, image_height = self.camera.getWidth(), self.camera.getHeight()
 
         # Approximate field of view of the camera
-        camera_fov_horizontal = 0.785398
-        camera_fov_vertical = 0.785398
+        camera_fov_horizontal = 0.785 
+        camera_fov_vertical = 0.785 
 
         # Calculate real world distance per pixel at current altitude
         real_world_per_pixel_x = 2 * altitude * np.tan(camera_fov_horizontal / 2) / image_width
@@ -155,7 +123,7 @@ class Mavic(Robot):
 
         # Adjust based on trial and error calibration
         calibration_factor_x = -0.1 # Adjust based on your trials
-        calibration_factor_y = -0.2   # Adjust based on your trials
+        calibration_factor_y = -0.2  # Adjust based on your trials
         real_world_per_pixel_x *= calibration_factor_x
         real_world_per_pixel_y *= calibration_factor_y
 
@@ -170,23 +138,35 @@ class Mavic(Robot):
 
         return x_world, y_world
 
+    def update_marker_position(self):
+        # During landing, update marker position
+        marker_detected = self.detect_aruco_marker()
+        if marker_detected:
+            print("Marker detected during landing. Updating marker position.")
+            return True
+        else:
+            print("Marker not detected during landing. Using previous marker position.")
+            return False
+
     def land(self,starting_altitude):
         # Gradual descent parameters
-        descent_rate = 0.1  # Meters per time step, adjust as needed
-        touchdown_altitude = 0.1  # Altitude at which to cut off motors, adjust as needed
+        descent_rate = 0.01  # Meters per time step, adjust as needed
+        touchdown_altitude = 0.2  # Altitude at which to cut off motors, adjust as needed
 
         starting_altitude=int(starting_altitude)
-        
         while self.step(self.time_step) != -1:
             _, _, altitude = self.gps.getValues()
             roll, pitch, yaw = self.imu.getRollPitchYaw()
+
 
             if altitude <= touchdown_altitude:
                 # If the drone is close enough to the ground, cut off the motors
                 for motor in self.motors:
                     motor.setVelocity(0.0)
                 break
-
+            
+            yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
+            
             # Gradually reduce the altitude
             self.target_altitude -= descent_rate
             self.target_altitude = max(self.target_altitude, 0)  # Ensure it doesn't go below zero
@@ -195,8 +175,8 @@ class Mavic(Robot):
             roll, pitch, yaw = self.imu.getRollPitchYaw()
             roll_acceleration, pitch_acceleration, _ = self.gyro.getValues()
             roll_input = self.K_ROLL_P * clamp(roll, -1, 1) + roll_acceleration
-            pitch_input = self.K_PITCH_P * clamp(pitch, -1, 1) + pitch_acceleration
-            yaw_input = yaw  # No yaw adjustment needed during landing
+            pitch_input = self.K_PITCH_P * clamp(pitch, -1, 1) + pitch_acceleration + pitch_disturbance
+            yaw_input = yaw_disturbance  # No yaw adjustment needed during landing
             clamped_difference_altitude = clamp(self.target_altitude - altitude + self.K_VERTICAL_OFFSET, -1, 1)
             vertical_input = self.K_VERTICAL_P * pow(clamped_difference_altitude, 3.0)
 
@@ -210,9 +190,8 @@ class Mavic(Robot):
             self.rear_left_motor.setVelocity(-rear_left_motor_input)
             self.rear_right_motor.setVelocity(rear_right_motor_input)
             
-            if int(altitude) == 5:
-                descent_rate = 0.05
-        
+            self.detect_aruco_marker()
+            print("New marker position: ", self.marker_position)
 
         print("Landing completed.")
 
@@ -241,6 +220,9 @@ class Mavic(Robot):
             if self.target_index > len(waypoints) - 1:
                 self.target_index = 0
             self.target_position[0:2] = waypoints[self.target_index]
+            if verbose_target:
+                print("Target reached! New target: ",
+                      self.target_position[0:2])
 
         # This will be in ]-pi;pi]
         self.target_position[2] = np.arctan2(
@@ -271,11 +253,13 @@ class Mavic(Robot):
         roll_disturbance = 0
         pitch_disturbance = 0
         yaw_disturbance = 0
-        count1=0
-        count2=0
+
+        # Specify the patrol coordinates
+        waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
+        #waypoints = [[-6.36,3.2]]
         # target altitude of the robot in meters
         self.target_altitude = 15
-        first_time = True
+
         detected_marker = False
         while self.step(self.time_step) != -1:
             # Read sensors and set position.
@@ -283,53 +267,29 @@ class Mavic(Robot):
             x_pos, y_pos, altitude = self.gps.getValues()
             roll_acceleration, pitch_acceleration, _ = self.gyro.getValues()
             self.set_position([x_pos, y_pos, altitude, roll, pitch, yaw])
-            
+
             if not self.marker_detected:
                 if altitude > self.target_altitude - 1:
                     current_time = self.getTime()
-                    if first_time:
-                        self.update_sinusoidal_waypoints(current_time)
-                        yaw_disturbance, pitch_disturbance = self.compute_movement()
-                    elif not first_time and abs(altitude-5) < 0.1:
-                        self.update_spiral_waypoints()
-                        yaw_disturbance, pitch_disturbance = self.compute_movement()
-                    else:
-                        yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
-                    
+                    self.update_sinusoidal_waypoints(current_time)
+                    yaw_disturbance, pitch_disturbance = self.compute_movement()
                 else:
                     yaw_disturbance = 0
                     pitch_disturbance = 0
-            elif self.marker_detected and not self.target_altitude==5:
-                # Move towards the marker position and lower the altitude to seacrh again. 
-                self.target_position[0:2] = self.marker_position
-                yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
-                if abs(self.current_pose[0] - self.marker_position[0]) < 0.3 and abs(self.current_pose[1] - self.marker_position[1]) < 0.3:
-                    print("Found marker, lowering altitude and searching again.")
-                    self.target_altitude=5
-                    self.marker_detected = False
-                    continue
             else:
+                # Move towards the marker position and land
                 self.target_position[0:2] = self.marker_position
                 yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
-                if abs(self.current_pose[0] - self.marker_position[0]) < self.target_precision  and abs(self.current_pose[1] - self.marker_position[1]) < self.target_precision:
-                    print("Moved over the marker, landing.")
+                if abs(self.current_pose[0] - self.marker_position[0]) < 0.5 and abs(self.current_pose[1] - self.marker_position[1]) < 0.5:
+                    print("Landing on the marker.")
                     print("Marker position: ", self.marker_position)
                     print("Current position: ", self.current_pose[0:2])
                     self.land(altitude)
                     break
-            
+
             # Detect marker and switch to marker mode if found.
-            if not self.marker_detected and self.detect_aruco_marker() and first_time:
-                count1+=1
-                print("Marker position: ", self.marker_position)
-                print(count1)
-                first_time = False
-                self.marker_detected = True
-            if not first_time and abs(altitude-5) < 0.1 and self.detect_aruco_marker():
-                print("altitude-5=", abs(altitude-5))
-                count2+=1
-                print(count2)
-                print("Marker detected again, moving towards it.")
+            if not self.marker_detected and self.detect_aruco_marker():
+                print("Marker detected, switching to marker mode.")
                 print("Marker position: ", self.marker_position)
                 self.marker_detected = True
 
@@ -349,13 +309,39 @@ class Mavic(Robot):
             self.front_right_motor.setVelocity(-front_right_motor_input)
             self.rear_left_motor.setVelocity(-rear_left_motor_input)
             self.rear_right_motor.setVelocity(rear_right_motor_input)
-    
+       
+class SuperMavic(Supervisor):
+    def __init__(self):
+        Supervisor.__init__(self)
+        self.time_step = int(self.getBasicTimeStep())
+        self.mavic = self.getFromDef("Mavic_2_PRO")
+        self.bounding_object = self.mavic.getField("boundingObject").getSFNode()
+        self.children_field = self.bounding_object.getField("children")
+        self.first_pose_node = self.children_field.getMFNode(0)
+        self.pose_children_field = self.first_pose_node.getField("children")
+        self.bounding_box = self.pose_children_field.getMFNode(0)
+        self.size_field = self.bounding_box.getField("size")
+        self.size = self.size_field.getSFVec3f()
+        self.size_field.setSFVec3f(0.5, 0.5, 0.5)
+        
     def change_bbox(self):
         speed_value=self.gps.getSpeed()
         speed_vector=self.gps.getSpeedVector()
         print("Speed value:" , speed_value)
         print("Speed vector:" , speed_vector)
-
+        
+        x ,y, z = self.size_field.getSFVec3f()
+        
+        self.size_field.setSFVec3f(x + speed_vector[0], y + speed_vector[1], z + speed_vector[2])
+        
+        self.simulationStep()
+        
+    def run(self):
+        while self.step(self.time_step) != -1:
+            self.change_bbox()
 # Main execution
 robot = Mavic()
 robot.run()
+
+super_mavic = SuperMavic()
+super_mavic.run()
