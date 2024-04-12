@@ -2,6 +2,7 @@ from controller import Robot, Supervisor
 import sys
 import numpy as np
 import cv2
+import math
 
 def clamp(value, value_min, value_max):
     return min(max(value, value_min), value_max)
@@ -138,16 +139,6 @@ class Mavic(Robot):
 
         return x_world, y_world
 
-    def update_marker_position(self):
-        # During landing, update marker position
-        marker_detected = self.detect_aruco_marker()
-        if marker_detected:
-            print("Marker detected during landing. Updating marker position.")
-            return True
-        else:
-            print("Marker not detected during landing. Using previous marker position.")
-            return False
-
     def land(self,starting_altitude):
         # Gradual descent parameters
         descent_rate = 0.01  # Meters per time step, adjust as needed
@@ -185,13 +176,19 @@ class Mavic(Robot):
             rear_left_motor_input = self.K_VERTICAL_THRUST + vertical_input + yaw_input - pitch_input - roll_input
             rear_right_motor_input = self.K_VERTICAL_THRUST + vertical_input - yaw_input - pitch_input + roll_input
 
+            if math.isnan(front_left_motor_input) or math.isnan(front_right_motor_input) or math.isnan(rear_left_motor_input) or math.isnan(rear_right_motor_input):
+                print("NaN value detected. Changing them to 0.")
+                for motor in self.motors:
+                    motor.setVelocity(0.0)
+                break
+            
             self.front_left_motor.setVelocity(front_left_motor_input)
             self.front_right_motor.setVelocity(-front_right_motor_input)
             self.rear_left_motor.setVelocity(-rear_left_motor_input)
             self.rear_right_motor.setVelocity(rear_right_motor_input)
             
             self.detect_aruco_marker()
-            print("New marker position: ", self.marker_position)
+            print("Marker position: ", self.marker_position)
 
         print("Landing completed.")
 
@@ -305,43 +302,16 @@ class Mavic(Robot):
             rear_left_motor_input = self.K_VERTICAL_THRUST + vertical_input + yaw_input - pitch_input - roll_input
             rear_right_motor_input = self.K_VERTICAL_THRUST + vertical_input - yaw_input - pitch_input + roll_input
 
+            if math.isnan(front_left_motor_input) or math.isnan(front_right_motor_input) or math.isnan(rear_left_motor_input) or math.isnan(rear_right_motor_input):
+                print("NaN value detected. Changing them to 0.")
+                for motor in self.motors:
+                    motor.setVelocity(0.0)
+                break
             self.front_left_motor.setVelocity(front_left_motor_input)
             self.front_right_motor.setVelocity(-front_right_motor_input)
             self.rear_left_motor.setVelocity(-rear_left_motor_input)
             self.rear_right_motor.setVelocity(rear_right_motor_input)
-       
-class SuperMavic(Supervisor):
-    def __init__(self):
-        Supervisor.__init__(self)
-        self.time_step = int(self.getBasicTimeStep())
-        self.mavic = self.getFromDef("Mavic_2_PRO")
-        self.bounding_object = self.mavic.getField("boundingObject").getSFNode()
-        self.children_field = self.bounding_object.getField("children")
-        self.first_pose_node = self.children_field.getMFNode(0)
-        self.pose_children_field = self.first_pose_node.getField("children")
-        self.bounding_box = self.pose_children_field.getMFNode(0)
-        self.size_field = self.bounding_box.getField("size")
-        self.size = self.size_field.getSFVec3f()
-        self.size_field.setSFVec3f(0.5, 0.5, 0.5)
-        
-    def change_bbox(self):
-        speed_value=self.gps.getSpeed()
-        speed_vector=self.gps.getSpeedVector()
-        print("Speed value:" , speed_value)
-        print("Speed vector:" , speed_vector)
-        
-        x ,y, z = self.size_field.getSFVec3f()
-        
-        self.size_field.setSFVec3f(x + speed_vector[0], y + speed_vector[1], z + speed_vector[2])
-        
-        self.simulationStep()
-        
-    def run(self):
-        while self.step(self.time_step) != -1:
-            self.change_bbox()
+            
 # Main execution
 robot = Mavic()
 robot.run()
-
-super_mavic = SuperMavic()
-super_mavic.run()
