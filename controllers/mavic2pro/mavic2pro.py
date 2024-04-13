@@ -32,6 +32,7 @@ class Mavic(Robot):
         self.marker_detected = False
         self.marker_position = [0, 0]
         self.target_index = 0
+        self.landed = False
 
     def init_devices(self):
         self.camera = self.getDevice("camera")
@@ -191,7 +192,7 @@ class Mavic(Robot):
             print("Marker position: ", self.marker_position)
 
         print("Landing completed.")
-
+        self.landed=True
 
     def move_to_target(self, waypoints, verbose_movement=False, verbose_target=False):
         """

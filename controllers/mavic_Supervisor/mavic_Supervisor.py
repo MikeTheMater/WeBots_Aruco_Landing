@@ -34,7 +34,7 @@ class SuperMavic(Supervisor):
             # Wait for 1 second
             self.step(1000)
 
-            # Get the updated position of the drone
+            # Get the new position of the drone
             position2 = np.array([self.mavic.getPosition()[0], self.mavic.getPosition()[1], self.mavic.getPosition()[2]])
 
             # Calculate the difference in position
@@ -43,7 +43,7 @@ class SuperMavic(Supervisor):
             # Calculate the speed in each dimension
             speed = position_difference / 1.0  # Time difference is 1 second
 
-            # Print the speed in each dimension
+            # Print the speed in each dimension (in meters per second)
             print("Speed in x direction:", speed[0])
             print("Speed in y direction:", speed[1])
             print("Speed in z direction:", speed[2])
@@ -52,8 +52,6 @@ class SuperMavic(Supervisor):
     
     def change_bbox(self):
         speed_vector = self.calculateSpeed()
-        center_of_mass = self.mavic.getCenterOfMass()
-        print("Center of mass:", center_of_mass)
         
         # Normalize the speed vector
         speed_magnitude = np.linalg.norm(speed_vector)
@@ -68,17 +66,21 @@ class SuperMavic(Supervisor):
         #bounding box position scale factor
         scale_factor_position = 0.5
         
-        # Update bounding box size based on normalized speed vector
+        # Update bounding box size and center based on normalized speed vector
         new_size = [self.initial_size[i] + abs(normalized_speed[i]) * scale_factor for i in range(3)]
         new_translation = [self.initial_translation[i] + (abs(normalized_speed[i]) if i < 2 else normalized_speed[i]) * scale_factor_position 
                             for i in range(3)]
 
+        position= self.mavic.getPosition()
+        if position[2]<new_size[2] and normalized_speed[2]<0:
+            new_size[2]=self.initial_size[2]
+            new_translation[2]=self.initial_translation[2]    
+        
         # Set the new size of the bounding box
         self.size_field.setSFVec3f(new_size)
         #Set the new translation of the bounding box
         self.pose_translation_field.setSFVec3f(new_translation)
         
-        print("New size:", new_size)
         
     def run(self):
         while self.step(self.time_step) != -1:
@@ -88,6 +90,9 @@ class SuperMavic(Supervisor):
             
             if self.isNAN:
                break
+            if self.mavic.getPosition()[2] < 0.1 and self.calculateSpeed()[2] < 0:
+                print("Landed")
+                break
         print("Exiting...")
         sys.exit(0)
 
