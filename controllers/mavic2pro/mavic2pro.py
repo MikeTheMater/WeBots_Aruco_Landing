@@ -306,7 +306,7 @@ class Mavic(Robot):
                 print("NaN value detected. Changing them to 0.")
                 for motor in self.motors:
                     motor.setVelocity(0.0)
-                break
+                #break
             self.front_left_motor.setVelocity(front_left_motor_input)
             self.front_right_motor.setVelocity(-front_right_motor_input)
             self.rear_left_motor.setVelocity(-rear_left_motor_input)
