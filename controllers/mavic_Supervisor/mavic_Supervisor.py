@@ -112,7 +112,7 @@ class SuperMavic(Supervisor):
             self.emitter.send(message)
             # Example: Receive a message on the receiver
             if self.receiver.getQueueLength() > 0:
-                received_message = self.receiver.getData()
+                received_message = self.receiver.getString()
                 print("Received message:", received_message)
                 self.receiver.nextPacket()  # Move to the next received packet
             self.simulationResetPhysics()

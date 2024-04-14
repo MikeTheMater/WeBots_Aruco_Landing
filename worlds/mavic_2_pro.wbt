@@ -1529,6 +1529,10 @@ Robot {
           ]
           name "head"
         }
+        DEF EMITTER Emitter {
+        }
+        DEF RECEIVER Receiver {
+        }
       ]
     }
   ]
@@ -3024,6 +3028,10 @@ Robot {
             }
           ]
           name "head"
+        }
+        DEF EMITTER Emitter {
+        }
+        DEF RECEIVER Receiver {
         }
       ]
     }
