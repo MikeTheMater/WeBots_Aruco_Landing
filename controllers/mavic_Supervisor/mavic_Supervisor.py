@@ -1,7 +1,8 @@
-from controller import Supervisor
+from controller import Supervisor, Emitter, Receiver
 import sys
 import numpy as np
 import math
+import struct
 
 class SuperMavic(Supervisor):
     def __init__(self, nameDef):
@@ -24,7 +25,11 @@ class SuperMavic(Supervisor):
         print("Initial translation:", self.initial_translation)
         self.isNAN = False
         
-    def setDefName(self, nameDef):
+        self.mavic.getEmitter = Emitter("emitter")
+        self.mavic.getReceiver = Receiver("receiver")
+        self.emitter = self.mavic.getEmitter
+        self.receiver = self.mavic.getReceiver
+        
         self.nameDef = nameDef
         
     def calculateSpeed(self):
@@ -47,9 +52,9 @@ class SuperMavic(Supervisor):
             speed = position_difference / 1.0  # Time difference is 1 second
 
             # Print the speed in each dimension (in meters per second)
-            print("Speed in x direction:", speed[0])
-            print("Speed in y direction:", speed[1])
-            print("Speed in z direction:", speed[2])
+            #print("Speed in x direction:", speed[0])
+            #print("Speed in y direction:", speed[1])
+            #print("Speed in z direction:", speed[2])
             return speed
     
     
@@ -96,12 +101,20 @@ class SuperMavic(Supervisor):
                     y = self.new_translation[1] + (-1)**j * self.new_size[1] / 2
                     z = self.new_translation[2] + (-1)**k * self.new_size[2] / 2
                     points.append([x, y, z])
+        return points
         
         
     def run(self):
         while self.step(self.time_step) != -1:
             
             self.change_bbox()
+            message="bbox of "+self.nameDef+" "+str(self.calculateSpaceOfBox())
+            self.emitter.send(message)
+            # Example: Receive a message on the receiver
+            if self.receiver.getQueueLength() > 0:
+                received_message = self.receiver.getData()
+                print("Received message:", received_message)
+                self.receiver.nextPacket()  # Move to the next received packet
             self.simulationResetPhysics()
             
             if self.isNAN:
