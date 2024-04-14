@@ -3,6 +3,7 @@ import sys
 import numpy as np
 import math
 import struct
+import ast
 import os
 sys.path.append(os.path.abspath(r"C:\Users\MikeTheMater\Desktop\Landing_Site_Detection"))
 import box_intersection
@@ -93,16 +94,17 @@ class SuperMavic(Supervisor):
         self.pose_translation_field.setSFVec3f(self.new_translation)
     
     def calculateSpaceOfBox(self):
+        position = self.mavic.getPosition()
         # Calculate the 8 different points of the bounding box
         points = []
-        rounding_factor = 2
+        rounding_factor = 3
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    x = self.new_translation[0] + (-1) ** i * self.new_size[0] / 2
-                    y = self.new_translation[1] + (-1) ** j * self.new_size[1] / 2
-                    z = self.new_translation[2] + (-1) ** k * self.new_size[2] / 2
-                    points.append([round(x, rounding_factor), round(y, rounding_factor), round(z, rounding_factor)])
+                    x = position[0] + self.new_translation[0] + (-1) ** i * self.new_size[0] / 2
+                    y = position[1] + self.new_translation[1] + (-1) ** j * self.new_size[1] / 2
+                    z = position[2] + self.new_translation[2] + (-1) ** k * self.new_size[2] / 2
+                    points.append((round(x, rounding_factor), round(y, rounding_factor), round(z, rounding_factor)))
 
         # Rearrange the points in the required order for the Box class
         box_vertices = [
@@ -117,6 +119,27 @@ class SuperMavic(Supervisor):
         ]
         return box_vertices
 
+    def findPointsFromMessage(self, message):
+        
+        # Extracting the string representation of the box vertices
+        start_index = message.find("[")
+        end_index = message.rfind("]") + 1  # Add 1 to include the closing bracket
+        box_vertices_str = message[start_index:end_index]
+        vertices_list = box_vertices_str.split(",")
+        vertices_list = [coord.strip("()") for coord in vertices_list]
+        vertices_list = [coord.replace("(", "") for coord in vertices_list]
+        vertices_list = [coord.replace(")", "") for coord in vertices_list]
+        vertices_list = [coord.replace("[", "") for coord in vertices_list]
+        vertices_list = [coord.replace("]", "") for coord in vertices_list]
+        vertices_list = [coord.replace(" ", "") for coord in vertices_list]
+        vertices_list = [coord.split(",") for coord in vertices_list]
+        vertices_list = [[float(coord) for coord in vertex] for vertex in vertices_list]
+        vertices_list = [vertex for sublist in vertices_list for vertex in sublist]
+        # Combine the vertices into triples
+        points = [tuple(vertices_list[i:i+3]) for i in range(0, len(vertices_list), 3)]
+
+        #print(points)
+        return points
             
     def findCollision(self, box1, box2):
         box1 = box_intersection.Box(box1)
@@ -132,21 +155,20 @@ class SuperMavic(Supervisor):
             # Example: Receive a message on the receiver
             if self.receiver.getQueueLength() > 0:
                 received_message = self.receiver.getString()
-                print("Received message to "+self.nameDef+":" , received_message)
+                #print("Received message to "+self.nameDef+":" , received_message)
                 self.receiver.nextPacket()  # Move to the next received packet
 
-                box1=self.calculateSpaceOfBox()
-                box2 = []
-                for point_data in received_message:
-                    point = tuple(point_data)
-                    box2.append(point)
+                box1=self.calculateSpaceOfBox()                
+
+                
+                box2 = self.findPointsFromMessage(received_message)
                 
                 collision = self.findCollision(box1, box2)
                 if collision:
                     print("Collision detected from " + self.nameDef + " with the other drone.")
                     # Handle collision logic here
                 else:
-                    print("No collision detected.")
+                    print("No collision detected from " + self.nameDef + " with the other drone.")
 
             
             self.simulationResetPhysics()

@@ -55,3 +55,32 @@ def example_run():
         print("The boxes do not intersect.")
 
     plt.show()
+
+def get_points_from_message():
+    # Assuming message is constructed as described
+    message = "bbox of Mavic_2_PRO_2 [(0.18, 0.28, 1.03), (0.18, 0.28, -0.07), (0.18, -0.28, -0.07), (0.18, -0.28, 1.03), (-0.3, 0.28, 1.03), (-0.3, 0.28, -0.07), (-0.3, -0.28, -0.07), (-0.3, -0.28, 1.03)]"
+
+    # Extracting the string representation of the box vertices
+    start_index = message.find("[")
+    end_index = message.rfind("]") + 1  # Add 1 to include the closing bracket
+    box_vertices_str = message[start_index:end_index]
+    vertices_list = box_vertices_str.split(",")
+    vertices_list = [coord.strip("()") for coord in vertices_list]
+    vertices_list = [coord.replace("(", "") for coord in vertices_list]
+    vertices_list = [coord.replace(")", "") for coord in vertices_list]
+    vertices_list = [coord.replace("[", "") for coord in vertices_list]
+    vertices_list = [coord.replace("]", "") for coord in vertices_list]
+    vertices_list = [coord.replace(" ", "") for coord in vertices_list]
+    vertices_list = [coord.split(",") for coord in vertices_list]
+    vertices_list = [[float(coord) for coord in vertex] for vertex in vertices_list]
+    vertices_list = [vertex for sublist in vertices_list for vertex in sublist]
+
+    print(vertices_list)
+    # Combine the vertices into triples
+    points = [tuple(vertices_list[i:i+3]) for i in range(0, len(vertices_list), 3)]
+
+    print(points)
+    # Convert each string element to a float and keep it in a tuple
+    box_vertices = tuple(float(coord) for coord in vertices_list)
+
+    print(box_vertices)
