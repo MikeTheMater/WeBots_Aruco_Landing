@@ -4,5 +4,5 @@ sys.path.append(os.path.abspath(r"C:\Users\MikeTheMater\Desktop\Landing_Site_Det
 import mavic_Supervisor
 
 # Main execution
-robot = mavic_Supervisor.SuperMavic("Mavic_2_PRO")
+robot = mavic_Supervisor.SuperMavic("Mavic_2_PRO_1")
 robot.run()

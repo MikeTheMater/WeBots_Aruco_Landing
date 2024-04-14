@@ -97,7 +97,7 @@ class Mavic(Robot):
         gray_image = cv2.cvtColor(image_array[:, :, :3], cv2.COLOR_BGR2GRAY)
 
         # Save image for debugging
-        cv2.imwrite("drone_view.jpg", gray_image)
+        #cv2.imwrite("drone_view.jpg", gray_image)
 
         aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         parameters = cv2.aruco.DetectorParameters()

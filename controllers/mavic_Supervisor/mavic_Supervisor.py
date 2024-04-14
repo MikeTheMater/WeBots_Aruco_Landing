@@ -3,6 +3,9 @@ import sys
 import numpy as np
 import math
 import struct
+import os
+sys.path.append(os.path.abspath(r"C:\Users\MikeTheMater\Desktop\Landing_Site_Detection"))
+import box_intersection
 
 class SuperMavic(Supervisor):
     def __init__(self, nameDef):
@@ -90,19 +93,35 @@ class SuperMavic(Supervisor):
         self.pose_translation_field.setSFVec3f(self.new_translation)
     
     def calculateSpaceOfBox(self):
-        points = []
-        
         # Calculate the 8 different points of the bounding box
         points = []
+        rounding_factor = 2
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    x = self.new_translation[0] + (-1)**i * self.new_size[0] / 2
-                    y = self.new_translation[1] + (-1)**j * self.new_size[1] / 2
-                    z = self.new_translation[2] + (-1)**k * self.new_size[2] / 2
-                    points.append([x, y, z])
-        return points
-        
+                    x = self.new_translation[0] + (-1) ** i * self.new_size[0] / 2
+                    y = self.new_translation[1] + (-1) ** j * self.new_size[1] / 2
+                    z = self.new_translation[2] + (-1) ** k * self.new_size[2] / 2
+                    points.append([round(x, rounding_factor), round(y, rounding_factor), round(z, rounding_factor)])
+
+        # Rearrange the points in the required order for the Box class
+        box_vertices = [
+            points[0],
+            points[1],
+            points[3],
+            points[2],
+            points[4],
+            points[5],
+            points[7],
+            points[6]
+        ]
+        return box_vertices
+
+            
+    def findCollision(self, box1, box2):
+        box1 = box_intersection.Box(box1)
+        box2 = box_intersection.Box(box2)
+        return box_intersection.boxes_intersect(box1, box2)
         
     def run(self):
         while self.step(self.time_step) != -1:
@@ -113,8 +132,23 @@ class SuperMavic(Supervisor):
             # Example: Receive a message on the receiver
             if self.receiver.getQueueLength() > 0:
                 received_message = self.receiver.getString()
-                print("Received message:", received_message)
+                print("Received message to "+self.nameDef+":" , received_message)
                 self.receiver.nextPacket()  # Move to the next received packet
+
+                box1=self.calculateSpaceOfBox()
+                box2 = []
+                for point_data in received_message:
+                    point = tuple(point_data)
+                    box2.append(point)
+                
+                collision = self.findCollision(box1, box2)
+                if collision:
+                    print("Collision detected from " + self.nameDef + " with the other drone.")
+                    # Handle collision logic here
+                else:
+                    print("No collision detected.")
+
+            
             self.simulationResetPhysics()
             
             if self.isNAN:
