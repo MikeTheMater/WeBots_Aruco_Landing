@@ -59,6 +59,9 @@ class Mavic(Robot):
 
     def set_position(self, pos):
         self.current_pose = pos
+        
+    def set_id(self, id):
+        self.id = id
 
     def update_sinusoidal_waypoints(self, current_time):
         x = current_time * self.sinusoidal_path_frequency
@@ -100,14 +103,14 @@ class Mavic(Robot):
         parameters = cv2.aruco.DetectorParameters()
         corners, ids, rejectedImgPoints = cv2.aruco.detectMarkers(gray_image, aruco_dict, parameters=parameters)
 
-        if ids is not None and 0 in ids:
-            index = list(ids).index(0)
+        if ids is not None and self.id in ids:
+            index = list(ids).index(self.id)
             marker_center = np.mean(corners[index][0], axis=0)
 
             # Convert pixel coordinates to world coordinates
             x_world, y_world = self.pixel_to_world(marker_center[0], marker_center[1])
             self.marker_position = [x_world, y_world]
-            return True  # Marker with ID 0 is detected
+            return True  # Marker with the specified ID is detected
         return False
 
     def pixel_to_world(self, x_pixel, y_pixel):
@@ -245,6 +248,7 @@ class Mavic(Robot):
                 angle_left, distance_left))
         return yaw_disturbance, pitch_disturbance
     
+    
     def run(self):
         t1 = self.getTime()
 
@@ -315,4 +319,5 @@ class Mavic(Robot):
             
 # Main execution
 robot = Mavic()
+robot.set_id(0)
 robot.run()

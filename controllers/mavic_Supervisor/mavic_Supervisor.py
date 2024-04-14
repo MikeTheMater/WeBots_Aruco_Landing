@@ -4,10 +4,10 @@ import numpy as np
 import math
 
 class SuperMavic(Supervisor):
-    def __init__(self):
+    def __init__(self, nameDef):
         Supervisor.__init__(self)
         self.time_step = int(self.getBasicTimeStep())
-        self.mavic = self.getFromDef("Mavic_2_PRO")
+        self.mavic = self.getFromDef(nameDef)
         if self.mavic is None:
             print("No Mavic found in the current world file.")
             sys.exit(1)
@@ -23,6 +23,9 @@ class SuperMavic(Supervisor):
         self.initial_translation = self.pose_translation_field.getSFVec3f()
         print("Initial translation:", self.initial_translation)
         self.isNAN = False
+        
+    def setDefName(self, nameDef):
+        self.nameDef = nameDef
         
     def calculateSpeed(self):
         time_step = int(self.getBasicTimeStep())
@@ -67,19 +70,32 @@ class SuperMavic(Supervisor):
         scale_factor_position = 0.5
         
         # Update bounding box size and center based on normalized speed vector
-        new_size = [self.initial_size[i] + abs(normalized_speed[i]) * scale_factor for i in range(3)]
-        new_translation = [self.initial_translation[i] + (abs(normalized_speed[i]) if i < 2 else normalized_speed[i]) * scale_factor_position 
+        self.new_size = [self.initial_size[i] + abs(normalized_speed[i]) * scale_factor for i in range(3)]
+        self.new_translation = [self.initial_translation[i] + (abs(normalized_speed[i]) if i < 2 else normalized_speed[i]) * scale_factor_position 
                             for i in range(3)]
 
         position= self.mavic.getPosition()
-        if position[2]<new_size[2] and normalized_speed[2]<0:
-            new_size[2]=self.initial_size[2]
-            new_translation[2]=self.initial_translation[2]    
+        if position[2]<self.new_size[2] and normalized_speed[2]<0:
+            self.new_size[2]=self.initial_size[2]
+            self.new_translation[2]=self.initial_translation[2]    
         
         # Set the new size of the bounding box
-        self.size_field.setSFVec3f(new_size)
+        self.size_field.setSFVec3f(self.new_size)
         #Set the new translation of the bounding box
-        self.pose_translation_field.setSFVec3f(new_translation)
+        self.pose_translation_field.setSFVec3f(self.new_translation)
+    
+    def calculateSpaceOfBox(self):
+        points = []
+        
+        # Calculate the 8 different points of the bounding box
+        points = []
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    x = self.new_translation[0] + (-1)**i * self.new_size[0] / 2
+                    y = self.new_translation[1] + (-1)**j * self.new_size[1] / 2
+                    z = self.new_translation[2] + (-1)**k * self.new_size[2] / 2
+                    points.append([x, y, z])
         
         
     def run(self):
@@ -96,5 +112,6 @@ class SuperMavic(Supervisor):
         print("Exiting...")
         sys.exit(0)
 
-controller = SuperMavic()
-controller.run()
+# controller1 = SuperMavic("Mavic_2_PRO")
+# #controller2 = SuperMavic("Mavic_2_PRO_2")
+# controller1.run()
