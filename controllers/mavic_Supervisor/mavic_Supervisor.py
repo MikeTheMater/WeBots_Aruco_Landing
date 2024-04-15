@@ -25,7 +25,8 @@ class SuperMavic(Supervisor):
         self.initial_size = [0.47, 0.55, 0.1]
         self.size_field.setSFVec3f(self.initial_size)
         self.pose_translation_field = self.first_pose_node.getField("translation")
-        self.initial_translation = self.pose_translation_field.getSFVec3f()
+        self.initial_translation = self.pose_translation_field.getSFVec3f()#the initial translation of the bounding box in relation to the drone
+        #self.initial_translation = self.calculate_translation_rel_to_world(self.initial_translation)
         print("Initial translation:", self.initial_translation)
         self.isNAN = False
         
@@ -35,7 +36,10 @@ class SuperMavic(Supervisor):
         self.receiver = self.mavic.getReceiver
         
         self.nameDef = nameDef
-        
+    
+    def calculate_translation_rel_to_world(self, translation):
+        return [translation[0] + self.mavic.getPosition()[0], translation[1] + self.mavic.getPosition()[1], translation[2] + self.mavic.getPosition()[2]]
+    
     def calculateSpeed(self):
         time_step = int(self.getBasicTimeStep())
         while self.step(time_step) != -1:
@@ -44,7 +48,7 @@ class SuperMavic(Supervisor):
             position1 = np.array([self.mavic.getPosition()[0], self.mavic.getPosition()[1], self.mavic.getPosition()[2]])
 
             # Wait for 1 second
-            self.step(1000)
+            self.step(500)
 
             # Get the new position of the drone
             position2 = np.array([self.mavic.getPosition()[0], self.mavic.getPosition()[1], self.mavic.getPosition()[2]])
@@ -53,7 +57,7 @@ class SuperMavic(Supervisor):
             position_difference = position2 - position1
 
             # Calculate the speed in each dimension
-            speed = position_difference / 1.0  # Time difference is 1 second
+            speed = position_difference / 0.5  # Time difference is 1 second
 
             # Print the speed in each dimension (in meters per second)
             #print("Speed in x direction:", speed[0])
@@ -101,9 +105,9 @@ class SuperMavic(Supervisor):
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    x = position[0] + self.new_translation[0] + (-1) ** i * self.new_size[0] / 2
-                    y = position[1] + self.new_translation[1] + (-1) ** j * self.new_size[1] / 2
-                    z = position[2] + self.new_translation[2] + (-1) ** k * self.new_size[2] / 2
+                    x = position[0] + (-1) ** i * self.new_size[0] / 2
+                    y = position[1] + (-1) ** j * self.new_size[1] / 2
+                    z = position[2] + (-1) ** k * self.new_size[2] / 2
                     points.append((round(x, rounding_factor), round(y, rounding_factor), round(z, rounding_factor)))
 
         # Rearrange the points in the required order for the Box class
@@ -175,10 +179,10 @@ class SuperMavic(Supervisor):
             
             if self.isNAN:
                break
-            if self.mavic.getPosition()[2] < 0.1 and self.calculateSpeed()[2] < 0:
-                print("Landed")
-                break
-        print("Exiting...")
+        #     if self.mavic.getPosition()[2] < 0.1 and self.calculateSpeed()[2] < 0:
+        #         print("Landed")
+        #         break
+        # print("Exiting...")
         sys.exit(0)
 
 # controller1 = SuperMavic("Mavic_2_PRO")

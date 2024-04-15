@@ -24,6 +24,7 @@ class Mavic(Robot):
         # Initialize devices.
         self.init_devices()
         self.init_motors()
+        self.init_bounding_box()
         self.current_pose = [0, 0, 0, 0, 0, 0]  # X, Y, Z, yaw, pitch, roll
         self.target_position = [0, 0, 0]
         self.target_altitude = 5
@@ -56,7 +57,33 @@ class Mavic(Robot):
         for motor in self.motors:
             motor.setPosition(float('inf'))
             motor.setVelocity(1)
+    #Initialize the bounding box of the drone but it is not visualized in the simulation
+    def init_bounding_box(self):
+        self.initial_size = [0.47, 0.55, 0.1]
+        self.initial_translation = [-0.06 , 0, -0.02]
+    
+    
+    def change_bbox(self):
+        speed_vector = self.calculate_speed()
 
+        # Normalize the speed vector
+        speed_magnitude = np.linalg.norm(speed_vector)
+        if speed_magnitude == 0:
+            return
+        normalized_speed = speed_vector / speed_magnitude
+        
+        # Speed scale factor
+        scale_factor = 1
+        # Bounding box position scale factor
+        scale_factor_position = 0.5
+        
+        # Update bounding box size and center based on normalized speed vector
+        self.new_size = [self.initial_size[i] + abs(normalized_speed[i]) * scale_factor for i in range(3)]
+        self.new_translation = [self.initial_translation[i] + (abs(normalized_speed[i]) if i < 2 else normalized_speed[i]) * scale_factor_position 
+                            for i in range(3)]  
+        
+    
+    
     def set_position(self, pos):
         self.current_pose = pos
         
@@ -90,6 +117,25 @@ class Mavic(Robot):
 
         return yaw_disturbance, pitch_disturbance
 
+    def calculate_speed(self):
+        time_step = int(self.getBasicTimeStep())
+        while self.step(time_step) != -1:
+            # Get the current position of the drone
+            position1 = np.array([self.gps.getValues()[0], self.gps.getValues()[1], self.gps.getValues()[2]])
+
+            # Wait for 1 second
+            self.step(500)
+
+            # Get the new position of the drone
+            position2 = np.array([self.gps.getValues()[0], self.gps.getValues()[1], self.gps.getValues()[2]])
+
+            # Calculate the difference in position
+            position_difference = position2 - position1
+
+            # Calculate the speed in each dimension
+            speed = position_difference / 0.5
+            return speed
+    
     def detect_aruco_marker(self):
         image = self.camera.getImage()
         height, width = self.camera.getHeight(), self.camera.getWidth()
@@ -192,7 +238,7 @@ class Mavic(Robot):
             self.rear_right_motor.setVelocity(rear_right_motor_input)
             
             self.detect_aruco_marker()
-            print("Marker position: ", self.marker_position)
+            #print("Marker position: ", self.marker_position)
 
         print("Landing completed.")
         self.landed=True
@@ -284,8 +330,8 @@ class Mavic(Robot):
                 yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
                 if abs(self.current_pose[0] - self.marker_position[0]) < 0.5 and abs(self.current_pose[1] - self.marker_position[1]) < 0.5:
                     print("Landing on the marker.")
-                    print("Marker position: ", self.marker_position)
-                    print("Current position: ", self.current_pose[0:2])
+                    #print("Marker position: ", self.marker_position)
+                    #print("Current position: ", self.current_pose[0:2])
                     self.land(altitude)
                     break
 
