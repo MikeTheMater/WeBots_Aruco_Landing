@@ -21,7 +21,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation 0.552538715165278 0.5865947247846887 -0.592121268912272 2.1410342687306487
-  position 2.2273336818025853 -0.021062974990696204 7.847565105160638
+  position 5.717234857508238 1.7210798958511622 35.45158149247016
   near 0.2
   follow "Mavic 2 PRO"
   followSmoothness 0.2
@@ -38,7 +38,7 @@ Floor {
   }
 }
 Solid {
-  translation 13.6837 4.79982 0.001
+  translation 13.9337 0.253063 0.001
   children [
     Shape {
       appearance PBRAppearance {
@@ -109,6 +109,68 @@ DEF Mavic_2_PRO_1 Robot {
   rotation 0.034863928104149976 1.0832075905560253e-06 0.9993920684676137 -3.1415626046806784
   children [
     DEF BODY_SLOT Group {
+      children [
+          Pose {
+          translation 0 0 -0.22
+          children [
+            Shape {
+              geometry IndexedLineSet {
+                coord Coordinate {
+                  point [
+                    -0.3 -0.28 0.15 #back_bottom_left
+                    0.17 -0.28 0.15 #back_bottom_right
+                    -0.3 0.28 0.15 #front_bottom_left
+                    0.17 0.28 0.15 #front_bottom_right
+                    -0.3 -0.28 0.25 #back_top_left
+                    0.17 -0.28 0.25 #back_top_right
+                    -0.3 0.28 0.25 #front_top_left
+                    0.17 0.28 0.25 #front_top_right
+                    -0.06 -0.28 0.15 #back_bottom_center
+                    -0.3 0 0.15 #bottom_left_center
+                    -0.3 -0.28 0.2 #back_left_center 
+                    0.17 0 0.15 #bottom_right_center
+                    0.17 -0.28 0.2 #back_right_center
+                    -0.06 0.28 0.15 #front_bottom_center
+                    -0.3 0.28 0.2 #front_left_center
+                    0.17 0.28 0.2 #front_right_center
+                    -0.06 -0.28 0.25 #back_top_center
+                    -0.3 0 0.25 #left_top_center
+                    0.17 0 0.25 #right_top_center 
+                    -0.06 0.28 0.25 #front_top_center
+                  ]
+                }
+                coordIndex [
+                  0, 8, -1, 
+                  1, 8, -1, 
+                  0, 9, -1, 
+                  2, 9, -1, 
+                  0, 10, -1, 
+                  4, 10, -1, 
+                  1, 11, -1, 
+                  3, 11, -1, 
+                  1, 12, -1, 
+                  5, 12, -1, 
+                  2, 13, -1, 
+                  3, 13, -1, 
+                  2, 14, -1, 
+                  6, 14, -1, 
+                  3, 15, -1, 
+                  7, 15, -1, 
+                  4, 16, -1, 
+                  5, 16, -1, 
+                  4, 17, -1, 
+                  6, 17, -1, 
+                  5, 18, -1, 
+                  7, 18, -1, 
+                  6, 19, -1, 
+                  7, 19, -1
+                ]
+              }
+              castShadows FALSE
+            }
+          ]
+        }
+      ]
     }
     Shape {
       appearance DEF GREY_PLASTIC PBRAppearance {
@@ -144,6 +206,10 @@ DEF Mavic_2_PRO_1 Robot {
           "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/dji/mavic/protos/Mavic2Pro/meshes/body_lenses.obj"
         ]
       }
+    }
+    DEF EMITTER Emitter {
+    }
+    DEF RECEIVER Receiver {
     }
     DEF COMPASS Compass {
     }
@@ -1135,15 +1201,7 @@ DEF Mavic_2_PRO_1 Robot {
   name "Mavic 2 PRO"
   model "DJI Mavic 2 PRO"
   boundingObject Group {
-    children [
-      Pose {
-        translation -0.06 0 -0.02
-        children [
-          Box {
-            size 0.47 0.55 0.1
-          }
-        ]
-      }
+    children[
       Pose {
         translation -0.03 0 0.002
         children [
@@ -1550,6 +1608,68 @@ DEF Mavic_2_PRO_2 Robot {
   translation 0 0 0.065
   children [
     DEF BODY_SLOT Group {
+    children [
+        Pose {
+          translation 0 0 -0.22
+          children [
+            Shape {
+              geometry IndexedLineSet {
+                coord Coordinate {
+                  point [
+                    -0.3 -0.28 0.15 #back_bottom_left
+                    0.17 -0.28 0.15 #back_bottom_right
+                    -0.3 0.28 0.15 #front_bottom_left
+                    0.17 0.28 0.15 #front_bottom_right
+                    -0.3 -0.28 0.25 #back_top_left
+                    0.17 -0.28 0.25 #back_top_right
+                    -0.3 0.28 0.25 #front_top_left
+                    0.17 0.28 0.25 #front_top_right
+                    -0.06 -0.28 0.15 #back_bottom_center
+                    -0.3 0 0.15 #bottom_left_center
+                    -0.3 -0.28 0.2 #back_left_center 
+                    0.17 0 0.15 #bottom_right_center
+                    0.17 -0.28 0.2 #back_right_center
+                    -0.06 0.28 0.15 #front_bottom_center
+                    -0.3 0.28 0.2 #front_left_center
+                    0.17 0.28 0.2 #front_right_center
+                    -0.06 -0.28 0.25 #back_top_center
+                    -0.3 0 0.25 #left_top_center
+                    0.17 0 0.25 #right_top_center 
+                    -0.06 0.28 0.25 #front_top_center
+                  ]
+                }
+                coordIndex [
+                  0, 8, -1, 
+                  1, 8, -1, 
+                  0, 9, -1, 
+                  2, 9, -1, 
+                  0, 10, -1, 
+                  4, 10, -1, 
+                  1, 11, -1, 
+                  3, 11, -1, 
+                  1, 12, -1, 
+                  5, 12, -1, 
+                  2, 13, -1, 
+                  3, 13, -1, 
+                  2, 14, -1, 
+                  6, 14, -1, 
+                  3, 15, -1, 
+                  7, 15, -1, 
+                  4, 16, -1, 
+                  5, 16, -1, 
+                  4, 17, -1, 
+                  6, 17, -1, 
+                  5, 18, -1, 
+                  7, 18, -1, 
+                  6, 19, -1, 
+                  7, 19, -1
+                ]
+              }
+              castShadows FALSE
+            }
+          ]
+        }
+      ]
     }
     Shape {
       appearance DEF GREY_PLASTIC PBRAppearance {
@@ -1585,6 +1705,10 @@ DEF Mavic_2_PRO_2 Robot {
           "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/dji/mavic/protos/Mavic2Pro/meshes/body_lenses.obj"
         ]
       }
+    }
+    DEF EMITTER Emitter {
+    }
+    DEF RECEIVER Receiver {
     }
     DEF COMPASS Compass {
     }
@@ -2577,14 +2701,6 @@ DEF Mavic_2_PRO_2 Robot {
   boundingObject Group {
     children [
       Pose {
-        translation -0.06 0 -0.02
-        children [
-          Box {
-            size 0.47 0.55 0.1
-          }
-        ]
-      }
-      Pose {
         translation -0.03 0 0.002
         children [
           Box {
@@ -2667,7 +2783,7 @@ DEF Mavic_2_PRO_2 Robot {
   supervisor TRUE
 }
 Solid {
-  translation -13.6837 4.79982 0.001
+  translation -12.5819 2.37675 0.001
   children [
     Shape {
       appearance PBRAppearance {
