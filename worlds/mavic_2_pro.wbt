@@ -20,8 +20,8 @@ WorldInfo {
   }
 }
 Viewpoint {
-  orientation 0.552538715165278 0.5865947247846887 -0.592121268912272 2.1410342687306487
-  position 5.717234857508238 1.7210798958511622 35.45158149247016
+  orientation -0.39855698787337446 0.5883411306235398 0.703567368084903 1.5328384319566017
+  position -0.9657706579902188 -2.2725090778722445 4.158277619604513
   near 0.2
   follow "Mavic 2 PRO"
   followSmoothness 0.2
@@ -110,60 +110,37 @@ DEF Mavic_2_PRO_1 Robot {
   children [
     DEF BODY_SLOT Group {
       children [
-          Pose {
+        Pose {
           translation 0 0 -0.22
           children [
             Shape {
               geometry IndexedLineSet {
                 coord Coordinate {
                   point [
-                    -0.3 -0.28 0.15 #back_bottom_left
-                    0.17 -0.28 0.15 #back_bottom_right
-                    -0.3 0.28 0.15 #front_bottom_left
-                    0.17 0.28 0.15 #front_bottom_right
-                    -0.3 -0.28 0.25 #back_top_left
-                    0.17 -0.28 0.25 #back_top_right
-                    -0.3 0.28 0.25 #front_top_left
-                    0.17 0.28 0.25 #front_top_right
-                    -0.06 -0.28 0.15 #back_bottom_center
-                    -0.3 0 0.15 #bottom_left_center
-                    -0.3 -0.28 0.2 #back_left_center 
-                    0.17 0 0.15 #bottom_right_center
-                    0.17 -0.28 0.2 #back_right_center
-                    -0.06 0.28 0.15 #front_bottom_center
-                    -0.3 0.28 0.2 #front_left_center
-                    0.17 0.28 0.2 #front_right_center
-                    -0.06 -0.28 0.25 #back_top_center
-                    -0.3 0 0.25 #left_top_center
-                    0.17 0 0.25 #right_top_center 
-                    -0.06 0.28 0.25 #front_top_center
+                    -0.3 -0.28 0.15
+                    0.17 -0.28 0.15
+                    -0.3 0.28 0.15
+                    0.17 0.28 0.15
+                    -0.3 -0.28 0.25
+                    0.17 -0.28 0.25
+                    -0.3 0.28 0.25
+                    0.17 0.28 0.25
+                    -0.06 -0.28 0.15
+                    -0.3 0 0.15
+                    -0.3 -0.28 0.2
+                    0.17 0 0.15
+                    0.17 -0.28 0.2
+                    -0.06 0.28 0.15
+                    -0.3 0.28 0.2
+                    0.17 0.28 0.2
+                    -0.06 -0.28 0.25
+                    -0.3 0 0.25
+                    0.17 0 0.25
+                    -0.06 0.28 0.25
                   ]
                 }
                 coordIndex [
-                  0, 8, -1, 
-                  1, 8, -1, 
-                  0, 9, -1, 
-                  2, 9, -1, 
-                  0, 10, -1, 
-                  4, 10, -1, 
-                  1, 11, -1, 
-                  3, 11, -1, 
-                  1, 12, -1, 
-                  5, 12, -1, 
-                  2, 13, -1, 
-                  3, 13, -1, 
-                  2, 14, -1, 
-                  6, 14, -1, 
-                  3, 15, -1, 
-                  7, 15, -1, 
-                  4, 16, -1, 
-                  5, 16, -1, 
-                  4, 17, -1, 
-                  6, 17, -1, 
-                  5, 18, -1, 
-                  7, 18, -1, 
-                  6, 19, -1, 
-                  7, 19, -1
+                  0, 8, -1, 1, 8, -1, 0, 9, -1, 2, 9, -1, 0, 10, -1, 4, 10, -1, 1, 11, -1, 3, 11, -1, 1, 12, -1, 5, 12, -1, 2, 13, -1, 3, 13, -1, 2, 14, -1, 6, 14, -1, 3, 15, -1, 7, 15, -1, 4, 16, -1, 5, 16, -1, 4, 17, -1, 6, 17, -1, 5, 18, -1, 7, 18, -1, 6, 19, -1, 7, 19, -1
                 ]
               }
               castShadows FALSE
@@ -1201,7 +1178,7 @@ DEF Mavic_2_PRO_1 Robot {
   name "Mavic 2 PRO"
   model "DJI Mavic 2 PRO"
   boundingObject Group {
-    children[
+    children [
       Pose {
         translation -0.03 0 0.002
         children [
@@ -1608,7 +1585,7 @@ DEF Mavic_2_PRO_2 Robot {
   translation 0 0 0.065
   children [
     DEF BODY_SLOT Group {
-    children [
+      children [
         Pose {
           translation 0 0 -0.22
           children [
@@ -1616,53 +1593,30 @@ DEF Mavic_2_PRO_2 Robot {
               geometry IndexedLineSet {
                 coord Coordinate {
                   point [
-                    -0.3 -0.28 0.15 #back_bottom_left
-                    0.17 -0.28 0.15 #back_bottom_right
-                    -0.3 0.28 0.15 #front_bottom_left
-                    0.17 0.28 0.15 #front_bottom_right
-                    -0.3 -0.28 0.25 #back_top_left
-                    0.17 -0.28 0.25 #back_top_right
-                    -0.3 0.28 0.25 #front_top_left
-                    0.17 0.28 0.25 #front_top_right
-                    -0.06 -0.28 0.15 #back_bottom_center
-                    -0.3 0 0.15 #bottom_left_center
-                    -0.3 -0.28 0.2 #back_left_center 
-                    0.17 0 0.15 #bottom_right_center
-                    0.17 -0.28 0.2 #back_right_center
-                    -0.06 0.28 0.15 #front_bottom_center
-                    -0.3 0.28 0.2 #front_left_center
-                    0.17 0.28 0.2 #front_right_center
-                    -0.06 -0.28 0.25 #back_top_center
-                    -0.3 0 0.25 #left_top_center
-                    0.17 0 0.25 #right_top_center 
-                    -0.06 0.28 0.25 #front_top_center
+                    -0.3 -0.28 0.15
+                    0.17 -0.28 0.15
+                    -0.3 0.28 0.15
+                    0.17 0.28 0.15
+                    -0.3 -0.28 0.25
+                    0.17 -0.28 0.25
+                    -0.3 0.28 0.25
+                    0.17 0.28 0.25
+                    -0.06 -0.28 0.15
+                    -0.3 0 0.15
+                    -0.3 -0.28 0.2
+                    0.17 0 0.15
+                    0.17 -0.28 0.2
+                    -0.06 0.28 0.15
+                    -0.3 0.28 0.2
+                    0.17 0.28 0.2
+                    -0.06 -0.28 0.25
+                    -0.3 0 0.25
+                    0.17 0 0.25
+                    -0.06 0.28 0.25
                   ]
                 }
                 coordIndex [
-                  0, 8, -1, 
-                  1, 8, -1, 
-                  0, 9, -1, 
-                  2, 9, -1, 
-                  0, 10, -1, 
-                  4, 10, -1, 
-                  1, 11, -1, 
-                  3, 11, -1, 
-                  1, 12, -1, 
-                  5, 12, -1, 
-                  2, 13, -1, 
-                  3, 13, -1, 
-                  2, 14, -1, 
-                  6, 14, -1, 
-                  3, 15, -1, 
-                  7, 15, -1, 
-                  4, 16, -1, 
-                  5, 16, -1, 
-                  4, 17, -1, 
-                  6, 17, -1, 
-                  5, 18, -1, 
-                  7, 18, -1, 
-                  6, 19, -1, 
-                  7, 19, -1
+                  0, 8, -1, 1, 8, -1, 0, 9, -1, 2, 9, -1, 0, 10, -1, 4, 10, -1, 1, 11, -1, 3, 11, -1, 1, 12, -1, 5, 12, -1, 2, 13, -1, 3, 13, -1, 2, 14, -1, 6, 14, -1, 3, 15, -1, 7, 15, -1, 4, 16, -1, 5, 16, -1, 4, 17, -1, 6, 17, -1, 5, 18, -1, 7, 18, -1, 6, 19, -1, 7, 19, -1
                 ]
               }
               castShadows FALSE

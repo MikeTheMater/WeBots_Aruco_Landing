@@ -12,44 +12,39 @@ class SuperMavic(Supervisor):
     def __init__(self, nameDef):
         Supervisor.__init__(self)
         self.time_step = int(self.getBasicTimeStep())
-        self.mavic = self.getFromDef(nameDef)
+        self.mavic = self.getFromDef(nameDef)        
         if self.mavic is None:
             print("No Mavic found in the current world file.")
             sys.exit(1)
         self.children_field = self.mavic.getField("children")
-        print(type(self.children_field))
         self.body_slot = self.children_field.getMFNode(0)
-        print(type(self.body_slot))
         self.body_slot_children_field = self.body_slot.getField("children")
-        print(type(self.body_slot_children_field))
         self.pose_of_children_field = self.body_slot_children_field.getMFNode(0)
-        print(type(self.pose_of_children_field))
         self.children_of_pose_field = self.pose_of_children_field.getField("children")
-        print(type(self.children_of_pose_field))
         self.shape_node = self.children_of_pose_field.getMFNode(0)
-        print(type(self.shape_node))    
         self.geometry_field = self.shape_node.getField("geometry")
-        print("self.geometry_field:",type(self.geometry_field))
         self.coord_field = self.geometry_field.getSFNode().getField("coord").getSFNode()
-        print("self.coord_field:",type(self.coord_field))
         self.point_field = self.coord_field.getField("point")
-        print("self.point_field:",type(self.point_field))
-        points = []
-        for i in range(20):
-            points.append(self.point_field.getMFVec3f(i))
         
+        self.points = []
+        for i in range(20):
+            self.points.append(self.point_field.getMFVec3f(i))
+        
+        self.top_indexes = [4, 5, 6, 7, 16, 18, 19, 20]
+        self.bottom_indexes = [0, 1, 2, 3, 8, 9, 11, 13]
+        self.front_indexes = [2, 3, 6, 7, 13, 14, 15, 19]
+        self.back_indexes = [0, 1, 4, 5, 8, 10, 12, 16]
+        self.left_indexes = [0, 2, 4, 6, 8, 9, 10, 14, 17]
+        self.right_indexes = [1, 3, 5, 7, 9, 11, 12, 13, 18]
         self.isNAN = False
-        print("Initial points:", points)
+        #print("Initial points:", self.points)
         self.mavic.getEmitter = Emitter("emitter")
         self.mavic.getReceiver = Receiver("receiver")
         self.emitter = self.mavic.getEmitter
         self.receiver = self.mavic.getReceiver
         
         self.nameDef = nameDef
-    
-    def calculate_translation_rel_to_world(self, translation):
-        return [translation[0] + self.mavic.getPosition()[0], translation[1] + self.mavic.getPosition()[1], translation[2] + self.mavic.getPosition()[2]]
-    
+
     def calculateSpeed(self):
         time_step = int(self.getBasicTimeStep())
         while self.step(time_step) != -1:
@@ -57,7 +52,7 @@ class SuperMavic(Supervisor):
             # Get the current position of the drone
             position1 = np.array([self.mavic.getPosition()[0], self.mavic.getPosition()[1], self.mavic.getPosition()[2]])
 
-            # Wait for 1 second
+            # Wait for 0.5 second
             self.step(500)
 
             # Get the new position of the drone
@@ -67,7 +62,7 @@ class SuperMavic(Supervisor):
             position_difference = position2 - position1
 
             # Calculate the speed in each dimension
-            speed = position_difference / 0.5  # Time difference is 1 second
+            speed = position_difference / 0.5  # Time difference is 0.5 second
 
             # Print the speed in each dimension (in meters per second)
             #print("Speed in x direction:", speed[0])
@@ -78,61 +73,59 @@ class SuperMavic(Supervisor):
     
     def change_bbox(self):
         speed_vector = self.calculateSpeed()
+
+        # Define scaling factors for each direction
+        scale_factor = 1  # Adjust as needed
+        
+        self.rotation_field = self.mavic.getField("rotation")
+        self.rotation = self.rotation_field.getSFRotation()
         
         # Normalize the speed vector
-        speed_magnitude = np.linalg.norm(speed_vector)
-        if speed_magnitude == 0:
-            return  # Skip updating bounding box if speed is zero
-        normalized_speed = speed_vector / speed_magnitude
-        #print("Normalized speed vector:", normalized_speed)
+        speed_vector = speed_vector / np.linalg.norm(speed_vector)
         
-        
-        #speed scale factor
-        scale_factor = 1
-        #bounding box position scale factor
-        scale_factor_position = 0.5
-        
-        # Update bounding box size and center based on normalized speed vector
-        self.new_size = [self.initial_size[i] + abs(normalized_speed[i]) * scale_factor for i in range(3)]
-        self.new_translation = [self.initial_translation[i] + (abs(normalized_speed[i]) if i < 1 else normalized_speed[i]) * scale_factor_position 
-                            for i in range(3)]
-
-        position= self.mavic.getPosition()
-        if position[2]<self.new_size[2] and normalized_speed[2]<0:
-            self.new_size[2]=self.initial_size[2]
-            self.new_translation[2]=self.initial_translation[2]    
-        
-        # Set the new size of the bounding box
-        self.size_field.setSFVec3f(self.new_size)
-        #Set the new translation of the bounding box
-        self.pose_translation_field.setSFVec3f(self.new_translation)
+        scaled_points = []
+        for i in range(20):
+            # Scale the points based on the speed in each direction
+            point = self.points[i]
+            #Cases for the direction of the drone and the sign of the speed vector components 
+            #also the rotation of the drone to change the points that are at the side of the drone 
+            #that is moving
+            if speed_vector[0] > 0 and self.rotation[3] - 1.0 > -0.01:
+                if i in self.right_indexes:
+                    point = [point[0] + scale_factor * speed_vector[0], point[1], point[2]]
+            elif speed_vector[0] < 0 and self.rotation[3] - 1.0 > -0.01:
+                if i in self.left_indexes:
+                    point = [point[0] + scale_factor * speed_vector[0], point[1], point[2]]
+            elif speed_vector[1] > 0 and self.rotation[3] - 1.0 > -0.01:
+                if i in self.front_indexes:
+                    point = [point[0], point[1] + scale_factor * speed_vector[1], point[2]]
+            elif speed_vector[1] < 0 and self.rotation[3] - 1.0 > -0.01:
+                if i in self.back_indexes:
+                    point = [point[0], point[1] + scale_factor * speed_vector[1], point[2]]
+            elif speed_vector[0] > 0 and self.rotation[3] + 1.0 < 0.01:
+                if i in self.left_indexes:
+                    point = [point[0] + scale_factor * speed_vector[0], point[1], point[2]]
+            elif speed_vector[0] < 0 and self.rotation[3] + 1.0 < 0.01:
+                if i in self.right_indexes:
+                    point = [point[0] + scale_factor * speed_vector[0], point[1], point[2]]
+            elif speed_vector[1] > 0 and self.rotation[3] + 1.0 < 0.01:
+                if i in self.back_indexes:
+                    point = [point[0], point[1] + scale_factor * speed_vector[1], point[2]]
+            elif speed_vector[1] < 0 and self.rotation[3] + 1.0 < 0.01:
+                if i in self.front_indexes:
+                    point = [point[0], point[1] + scale_factor * speed_vector[1], point[2]]
+            
+            scaled_points.append(point)        
+                                        
+            
+        # Update the bounding box using the scaled points
+        self.updateBoundingBox(scaled_points)
     
-    def calculateVerticesOfBox(self):
-        position = self.mavic.getPosition()
-        # Calculate the 8 different points of the bounding box
-        points = []
-        relative_position = self.calculate_translation_rel_to_world(self.new_translation)
-        rounding_factor = 3
-        for i in range(2):
-            for j in range(2):
-                for k in range(2):
-                    x = relative_position[0] + (-1) ** i * self.new_size[0] / 2
-                    y = relative_position[1] + (-1) ** j * self.new_size[1] / 2
-                    z = relative_position[2] + (-1) ** k * self.new_size[2] / 2
-                    points.append((round(x, rounding_factor), round(y, rounding_factor), round(z, rounding_factor)))
+    def updateBoundingBox(self, points):
+        # Update the bounding box using the new points
+        for i in range(20):
+            self.point_field.setMFVec3f(i, points[i])
 
-        # Rearrange the points in the required order for the Box class
-        box_vertices = [
-            points[0],
-            points[1],
-            points[3],
-            points[2],
-            points[4],
-            points[5],
-            points[7],
-            points[6]
-        ]
-        return box_vertices
 
     def findPointsFromMessage(self, message):
         
@@ -165,25 +158,25 @@ class SuperMavic(Supervisor):
         while self.step(self.time_step) != -1:
             
             self.change_bbox()
-            message="bbox of "+self.nameDef+" "+str(self.calculateVerticesOfBox())
-            self.emitter.send(message)
-            # Example: Receive a message on the receiver
-            if self.receiver.getQueueLength() > 0:
-                received_message = self.receiver.getString()
-                #print("Received message to "+self.nameDef+":" , received_message)
-                self.receiver.nextPacket()  # Move to the next received packet
+            # message="bbox of "+self.nameDef+" "
+            # self.emitter.send(message)
+            # # Example: Receive a message on the receiver
+            # if self.receiver.getQueueLength() > 0:
+            #     received_message = self.receiver.getString()
+            #     #print("Received message to "+self.nameDef+":" , received_message)
+            #     self.receiver.nextPacket()  # Move to the next received packet
 
-                box1=self.calculateVerticesOfBox()                
+            #     box1=self.calculateVerticesOfBox()                
 
                 
-                box2 = self.findPointsFromMessage(received_message)
+            #     box2 = self.findPointsFromMessage(received_message)
                 
-                collision = self.findCollision(box1, box2)
-                # if collision:
-                #     print("Collision detected from " + self.nameDef + " with the other drone.")
-                #     # Handle collision logic here
-                # else:
-                #     print("No collision detected from " + self.nameDef + " with the other drone.")
+            #     collision = self.findCollision(box1, box2)
+            #     # if collision:
+            #     #     print("Collision detected from " + self.nameDef + " with the other drone.")
+            #     #     # Handle collision logic here
+            #     # else:
+            #     #     print("No collision detected from " + self.nameDef + " with the other drone.")
 
             
             self.simulationResetPhysics()
