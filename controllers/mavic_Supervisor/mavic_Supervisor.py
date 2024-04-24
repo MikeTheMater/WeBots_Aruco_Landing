@@ -30,12 +30,12 @@ class SuperMavic(Supervisor):
         for i in range(20):
             self.points.append(self.point_field.getMFVec3f(i))
         
-        self.top_indexes = [4, 5, 6, 7, 16, 18, 19, 20]
+        self.top_indexes = [4, 5, 6, 7, 16, 17, 18, 19]
         self.bottom_indexes = [0, 1, 2, 3, 8, 9, 11, 13]
-        self.front_indexes = [2, 3, 6, 7, 13, 14, 15, 19]
-        self.back_indexes = [0, 1, 4, 5, 8, 10, 12, 16]
-        self.left_indexes = [0, 2, 4, 6, 8, 9, 10, 14, 17]
-        self.right_indexes = [1, 3, 5, 7, 9, 11, 12, 13, 18]
+        self.front_indexes = [1, 3, 5, 7, 11, 12, 15, 18]
+        self.back_indexes = [0, 2, 4, 6, 9, 10, 14, 17]
+        self.left_indexes = [2, 3, 6, 7, 13, 14, 15, 19]
+        self.right_indexes = [0, 1, 4, 5, 8, 10, 12, 16]
         self.isNAN = False
         #print("Initial points:", self.points)
         self.mavic.getEmitter = Emitter("emitter")
@@ -64,10 +64,11 @@ class SuperMavic(Supervisor):
             # Calculate the speed in each dimension
             speed = position_difference / 0.5  # Time difference is 0.5 second
 
+            print(self.nameDef)
             # Print the speed in each dimension (in meters per second)
-            #print("Speed in x direction:", speed[0])
-            #print("Speed in y direction:", speed[1])
-            #print("Speed in z direction:", speed[2])
+            print("Speed in x direction:", speed[0])
+            print("Speed in y direction:", speed[1])
+            print("Speed in z direction:", speed[2])
             return speed
     
     
@@ -80,6 +81,11 @@ class SuperMavic(Supervisor):
         self.rotation_field = self.mavic.getField("rotation")
         self.rotation = self.rotation_field.getSFRotation()
         
+        self.orientation = self.mavic.getOrientation()
+        self.x_orientation = [self.orientation[0], self.orientation[3], self.orientation[6]]
+        self.y_orientation = [self.orientation[1], self.orientation[4], self.orientation[7]]
+        self.z_orientation = [self.orientation[2], self.orientation[5], self.orientation[8]]
+        self.position = self.mavic.getPosition()
         # Normalize the speed vector
         speed_vector = speed_vector / np.linalg.norm(speed_vector)
         
@@ -90,34 +96,200 @@ class SuperMavic(Supervisor):
             #Cases for the direction of the drone and the sign of the speed vector components 
             #also the rotation of the drone to change the points that are at the side of the drone 
             #that is moving
-            if speed_vector[0] > 0 and self.rotation[3] - 1.0 > -0.01:
-                if i in self.right_indexes:
-                    point = [point[0] + scale_factor * speed_vector[0], point[1], point[2]]
-            elif speed_vector[0] < 0 and self.rotation[3] - 1.0 > -0.01:
-                if i in self.left_indexes:
-                    point = [point[0] + scale_factor * speed_vector[0], point[1], point[2]]
-            elif speed_vector[1] > 0 and self.rotation[3] - 1.0 > -0.01:
-                if i in self.front_indexes:
-                    point = [point[0], point[1] + scale_factor * speed_vector[1], point[2]]
-            elif speed_vector[1] < 0 and self.rotation[3] - 1.0 > -0.01:
-                if i in self.back_indexes:
-                    point = [point[0], point[1] + scale_factor * speed_vector[1], point[2]]
-            elif speed_vector[0] > 0 and self.rotation[3] + 1.0 < 0.01:
-                if i in self.left_indexes:
-                    point = [point[0] + scale_factor * speed_vector[0], point[1], point[2]]
-            elif speed_vector[0] < 0 and self.rotation[3] + 1.0 < 0.01:
-                if i in self.right_indexes:
-                    point = [point[0] + scale_factor * speed_vector[0], point[1], point[2]]
-            elif speed_vector[1] > 0 and self.rotation[3] + 1.0 < 0.01:
-                if i in self.back_indexes:
-                    point = [point[0], point[1] + scale_factor * speed_vector[1], point[2]]
-            elif speed_vector[1] < 0 and self.rotation[3] + 1.0 < 0.01:
-                if i in self.front_indexes:
-                    point = [point[0], point[1] + scale_factor * speed_vector[1], point[2]]
+            #If the drone is looking in the direction of the positive x axis i have the following cases
+            #i) If the drone is moving in the positive x direction, the points that are at the front side of the drone should be moved
+            #  by the speed vector in the x direction
+            #ii) If the drone is moving in the negative x direction, the points that are at the back side of the drone should be moved
+            #  by the speed vector in the x direction
+            #iii) If the drone is moving in the positive y direction, the points that are at the right side of the drone should be moved
+            #  by the speed vector in the y direction
+            #iv) If the drone is moving in the negative y direction, the points that are at the left side of the drone should be moved
+            #  by the speed vector in the y direction
+            #v) If the drone is moving in the positive z direction, the points that are at the top side of the drone should be moved
+            #  by the speed vector in the z direction
+            #vi) If the drone is moving in the negative z direction, the points that are at the bottom side of the drone should be moved
+            #  by the speed vector in the z direction
+            #If the drone is looking in the direction of the negative x axis i have the following cases
+            #i) If the drone is moving in the positive x direction, the points that are at the back side of the drone should be moved
+            #  by the speed vector in the x direction
+            #ii) If the drone is moving in the negative x direction, the points that are at the front side of the drone should be moved 
+            #  by the speed vector in the x direction
+            #iii) If the drone is moving in the positive y direction, the points that are at the left side of the drone should be moved
+            #  by the speed vector in the y direction
+            #iv) If the drone is moving in the negative y direction, the points that are at the right side of the drone should be moved
+            #  by the speed vector in the y direction
+            #v) If the drone is moving in the positive z direction, the points that are at the top side of the drone should be moved
+            #  by the speed vector in the z direction
+            #vi) If the drone is moving in the negative z direction, the points that are at the bottom side of the drone should be moved
+            #  by the speed vector in the z direction
+            #If the drone is looking in the direction of the positive y axis i have the following cases
+            #i) If the drone is moving in the positive x direction, the points that are at the left side of the drone should be moved
+            #  by the speed vector in the x direction
+            #ii) If the drone is moving in the negative x direction, the points that are at the right side of the drone should be moved
+            #  by the speed vector in the x direction
+            #iii) If the drone is moving in the positive y direction, the points that are at the front side of the drone should be moved
+            #  by the speed vector in the y direction
+            #iv) If the drone is moving in the negative y direction, the points that are at the back side of the drone should be moved
+            #  by the speed vector in the y direction
+            #v) If the drone is moving in the positive z direction, the points that are at the top side of the drone should be moved
+            #  by the speed vector in the z direction
+            #vi) If the drone is moving in the negative z direction, the points that are at the bottom side of the drone should be moved
+            #  by the speed vector in the z direction
+            #If the drone is looking in the direction of the negative y axis i have the following cases
+            #i) If the drone is moving in the positive x direction, the points that are at the right side of the drone should be moved
+            #  by the speed vector in the x direction
+            #ii) If the drone is moving in the negative x direction, the points that are at the left side of the drone should be moved
+            #  by the speed vector in the x direction
+            #iii) If the drone is moving in the positive y direction, the points that are at the back side of the drone should be moved
+            #  by the speed vector in the y direction
+            #iv) If the drone is moving in the negative y direction, the points that are at the front side of the drone should be moved
+            #  by the speed vector in the y direction
+            #v) If the drone is moving in the positive z direction, the points that are at the top side of the drone should be moved
+            #  by the speed vector in the z direction
+            #vi) If the drone is moving in the negative z direction, the points that are at the bottom side of the drone should be moved    
+            #  by the speed vector in the z direction
             
-            scaled_points.append(point)        
-                                        
-            
+            speed_accuracy = 0.1
+            rotation = self.rotation
+            changed=False
+            #print(self.nameDef + " orientation ", self.orientation)   
+            if self.position[2]>0.1:    
+                if 1 - self.x_orientation[0] <= 0.1 and 1-self.x_orientation[0]>0:# Drone facing positive X axis
+                    if speed_vector[0] > speed_accuracy and i in self.front_indexes and not changed:
+                        # Moving in positive X direction, adjust points at front side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and i in self.back_indexes and not changed:
+                        # Moving in negative X direction, adjust points at back side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif not changed:
+                        new_point=self.points[i]
+                    if speed_vector[1] > speed_accuracy and i in self.left_indexes and not changed:
+                        # Moving in positive Y direction, adjust points at left side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and i in self.right_indexes and not changed:
+                        # Moving in negative Y direction, adjust points at right side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif not changed:
+                        new_point=self.points[i]
+                    if speed_vector[2] > speed_accuracy and i in self.top_indexes and not changed:
+                        # Moving in positive Z direction, adjust points at top side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif speed_vector[2] < - speed_accuracy and i in self.bottom_indexes and not changed:
+                        # Moving in negative Z direction, adjust points at bottom side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif not changed:
+                        new_point=self.points[i]
+                
+                elif 1 + self.x_orientation[0] <= 0.1:# Drone facing negative X axis
+                    if speed_vector[0] > speed_accuracy and i in self.back_indexes and not changed:
+                        # Moving in positive X direction, adjust points at back side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif speed_vector[0] < -speed_accuracy and i in self.front_indexes and not changed:
+                        # Moving in negative X direction, adjust points at front side
+                        new_point = [point[i] - speed_vector[i] * scale_factor * (1 if i == 0 else -1) for i in range(3)]
+
+                        changed=True
+                    elif not changed:
+                        new_point=self.points[i]
+                    if speed_vector[1] > speed_accuracy and i in self.right_indexes and not changed:
+                        # Moving in positive Y direction, adjust points at right side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed = True
+                    elif speed_vector[1] < -speed_accuracy and i in self.left_indexes and not changed:
+                        # Moving in negative Y direction, adjust points at left side
+                        new_point = [point[i] - speed_vector[i] * scale_factor * (1 if i == 1 else -1) for i in range(3)]
+                        changed = True
+                    elif not changed:
+                        new_point=self.points[i]    
+                    if speed_vector[2] > speed_accuracy and i in self.top_indexes and not changed:
+                        # Moving in positive Z direction, adjust points at top side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed = True
+                    elif speed_vector[2] < -speed_accuracy and i in self.bottom_indexes and not changed:
+                        # Moving in negative Z direction, adjust points at bottom side
+                        new_point = [point[i] - speed_vector[i] * scale_factor * (1 if i == 2 else -1) for i in range(3)]
+                        changed = True
+                    elif not changed:
+                        new_point=self.points[i]
+                        
+                elif 1 - self.y_orientation[1] <= 0.1 and 1-self.y_orientation[0]>0:# Drone facing positive Y axis
+                    if speed_vector[0] > speed_accuracy and i in self.right_indexes and not changed:
+                        # Moving in positive X direction, adjust points at right side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and i in self.left_indexes and not changed:
+                        # Moving in negative X direction, adjust points at left side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif not changed:
+                        new_point=self.points[i]
+                    if speed_vector[1] > speed_accuracy and i in self.front_indexes and not changed:
+                        # Moving in positive Y direction, adjust points at front side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and i in self.back_indexes and not changed:
+                        # Moving in negative Y direction, adjust points at back side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif not changed:
+                        new_point=self.points[i]
+                    if speed_vector[2] > speed_accuracy and i in self.top_indexes and not changed:
+                        # Moving in positive Z direction, adjust points at top side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif speed_vector[2] < - speed_accuracy and i in self.bottom_indexes and not changed:
+                        # Moving in negative Z direction, adjust points at bottom side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif not changed:
+                        new_point=self.points[i]
+                
+                elif 1 + self.y_orientation[0] <= 0.1:# Drone facing negative Y axis
+                    if speed_vector[0] > speed_accuracy and i in self.left_indexes and not changed:
+                        # Moving in positive X direction, adjust points at left side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif speed_vector[0] < -speed_accuracy and i in self.right_indexes and not changed:
+                        # Moving in negative X direction, adjust points at right side
+                        new_point = [point[i] - speed_vector[i] * scale_factor for i in range(3)]
+                        changed=True
+                    elif not changed:
+                        new_point=self.points[i]
+                    if speed_vector[1] > speed_accuracy and i in self.back_indexes and not changed:
+                        # Moving in positive Y direction, adjust points at back side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed = True
+                    elif speed_vector[1] < -speed_accuracy and i in self.front_indexes and not changed:
+                        # Moving in negative Y direction, adjust points at front side
+                        new_point = [point[i] - speed_vector[i] * scale_factor for i in range(3)]
+                        changed = True
+                    elif not changed:
+                        new_point=self.points[i]    
+                    if speed_vector[2] > speed_accuracy and i in self.top_indexes and not changed:
+                        # Moving in positive Z direction, adjust points at top side
+                        new_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+                        changed = True
+                    elif speed_vector[2] < -speed_accuracy and i in self.bottom_indexes and not changed:
+                        # Moving in negative Z direction, adjust points at bottom side
+                        new_point = [point[i] - speed_vector[i] * scale_factor for i in range(3)]
+                        changed = True
+                    elif not changed:
+                        new_point=self.points[i]
+                    
+                    
+            else:
+                new_point=self.points[i]                
+            # Append the scaled point to the list
+            scaled_points.append(new_point)
+                
+
         # Update the bounding box using the scaled points
         self.updateBoundingBox(scaled_points)
     
@@ -125,6 +297,7 @@ class SuperMavic(Supervisor):
         # Update the bounding box using the new points
         for i in range(20):
             self.point_field.setMFVec3f(i, points[i])
+            #print("Point ", i, ":", points[i])
 
 
     def findPointsFromMessage(self, message):
