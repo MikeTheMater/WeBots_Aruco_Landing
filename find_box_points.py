@@ -71,8 +71,7 @@ ax = fig.add_subplot(111, projection='3d')
 # Unpack the vertices for plotting
 x, y, z = zip(*vertices)
 
-# Plot the vertices
-ax.scatter(x, y, z)
+
 
 # Label the vertices
 for i, name in enumerate(names):
@@ -83,8 +82,7 @@ for i, name in enumerate(names):
         y_values = [vertices_dict[connection[0]][1], vertices_dict[connection[1]][1]]
         z_values = [vertices_dict[connection[0]][2], vertices_dict[connection[1]][2]]
         ax.plot(x_values, y_values, z_values)
-# Show the plot
-plt.show()
+
 for vertex in vertices_dict:
     if vertices_dict[vertex][0] == -0.29:
         vertices_dict[vertex][0] = -0.3
@@ -118,3 +116,8 @@ for vertex in vertices_dict:
 # Print the indexes
 for direction, index_list in indexes.items():
     print(f"The indexes of the points on the {direction} of the box are {index_list}")
+    
+# Plot the vertices
+ax.scatter(x, y, z)
+# Show the plot
+plt.show()

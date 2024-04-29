@@ -396,7 +396,7 @@ class Mavic(Robot):
         waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
         #waypoints = [[-6.36,3.2]]
         # target altitude of the robot in meters
-        self.target_altitude = 15
+        self.target_altitude = 5
 
         detected_marker = False
         while self.step(self.time_step) != -1:
@@ -455,6 +455,6 @@ class Mavic(Robot):
             self.rear_right_motor.setVelocity(rear_right_motor_input)
             
 # Main execution
-robot = Mavic()
-robot.set_id(0)
-robot.run()
+#robot = Mavic()
+#robot.set_id(0)
+#robot.run()
