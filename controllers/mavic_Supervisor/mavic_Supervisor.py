@@ -79,11 +79,10 @@ class SuperMavic(Supervisor):
             # Calculate the speed in each dimension
             speed = position_difference / 0.5  # Time difference is 0.5 second
 
-            print(self.nameDef)
             # Print the speed in each dimension (in meters per second)
-            # print("Speed in x direction:", speed[0])
-            # print("Speed in y direction:", speed[1])
-            # print("Speed in z direction:", speed[2])
+            print("Speed in x direction:", speed[0])
+            print("Speed in y direction:", speed[1])
+            print("Speed in z direction:", speed[2])
             return speed
     
     
@@ -168,20 +167,227 @@ class SuperMavic(Supervisor):
             rotation = self.rotation
             changed=False
             #print(self.nameDef + " orientation ", self.orientation)   
-            
-            if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] < - math.sqrt(2)/2 :
-                print("Drone" + self.nameDef + " is looking in the direction of the positive y axis")
-            if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] > math.sqrt(2)/2 :
-                print("Drone" + self.nameDef + " is looking in the direction of the negative y axis")
-            if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] > math.sqrt(2)/2 :
-                print("Drone" + self.nameDef + " is looking in the direction of the positive x axis")
-            if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] < - math.sqrt(2)/2 :
-                print("Drone" + self.nameDef + " is looking in the direction of the negative x axis")
-
-            
-            if not changed:
-                new_point=self.points[i]
+            movement = [-1, -1, -1] # front/back (0,1), left/right(0,1), top/bottom(0,1)
+            if self.position[2]> 0.1:
+                if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] > math.sqrt(2)/2 :
+                    print("Drone" + self.nameDef + " is looking in the direction of the positive x axis")
+                    if speed_vector[0] > speed_accuracy:
+                        movement[0] = 0 # moving front
+                    if speed_vector[0] < -speed_accuracy:
+                        movement[0] = 1 # moving back
+                    if speed_vector[1] > speed_accuracy:
+                        movement[1] = 0 # moving left
+                    if speed_vector[1] < -speed_accuracy:
+                        movement[1] = 1 # moving right
+                    if speed_vector[2] > speed_accuracy:
+                        movement[2] = 0 # moving top
+                    if speed_vector[2] < -speed_accuracy:
+                        movement[2] = 1 # moving bottom
+                if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] < - math.sqrt(2)/2 :
+                    print("Drone" + self.nameDef + " is looking in the direction of the negative x axis")
+                    if speed_vector[0] > speed_accuracy:
+                        movement[0] = 1
+                    if speed_vector[0] < -speed_accuracy:
+                        movement[0] = 0
+                    if speed_vector[1] > speed_accuracy:
+                        movement[1] = 1
+                    if speed_vector[1] < -speed_accuracy:
+                        movement[1] = 0
+                    if speed_vector[2] > speed_accuracy:
+                        movement[2] = 0
+                    if speed_vector[2] < -speed_accuracy:
+                        movement[2] = 1
+                if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] < - math.sqrt(2)/2 :
+                    print("Drone" + self.nameDef + " is looking in the direction of the positive y axis")
+                    if speed_vector[1] > speed_accuracy:
+                        movement[0] = 0
+                    if speed_vector[1] < -speed_accuracy:
+                        movement[0] = 1
+                    if speed_vector[0] > speed_accuracy:
+                        movement[1] = 1
+                    if speed_vector[0] < -speed_accuracy:
+                        movement[1] = 0
+                    if speed_vector[2] > speed_accuracy:
+                        movement[2] = 0
+                    if speed_vector[2] < -speed_accuracy:
+                        movement[2] = 1
+                if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] > math.sqrt(2)/2 :
+                    print("Drone" + self.nameDef + " is looking in the direction of the negative y axis")
+                    if speed_vector[1] > speed_accuracy:
+                        movement[0] = 1
+                    if speed_vector[1] < -speed_accuracy:
+                        movement[0] = 0
+                    if speed_vector[0] > speed_accuracy:
+                        movement[1] = 0
+                    if speed_vector[0] < -speed_accuracy:
+                        movement[1] = 1
+                    if speed_vector[2] > speed_accuracy:
+                        movement[2] = 0
+                    if speed_vector[2] < -speed_accuracy:
+                        movement[2] = 1
                 
+            new_speed_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+            
+            match movement:
+                case [-1, -1, 0]:
+                    if i in self.top_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [-1, -1, 1]:
+                    if i in self.bottom_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [-1, 0, -1]:
+                    if i in self.left_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [-1, 0, 0]:
+                    if i in self.top_left_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [-1, 0, 1]:
+                    if i in self.bottom_left_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [-1, 1, -1]:
+                    if i in self.right_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [-1, 1, 0]:
+                    if i in self.top_right_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [-1, 1, 1]:
+                    if i in self.bottom_right_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [0, -1, -1]:
+                    if i in self.front_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [0, -1, 0]:
+                    if i in self.top_front_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [0, -1, 1]:
+                    if i in self.bottom_front_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [0, 0, -1]:
+                    if i in self.left_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [0, 0, 0]:
+                    if i in self.top_left_indexes and i in self.front_left_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [0, 0, 1]:
+                    if i in self.bottom_left_indexes and i in self.front_left_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [0, 1, -1]:
+                    if i in self.front_right_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [0, 1, 0]:
+                    if i in self.top_right_indexes and i in self.front_right_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [0, 1, 1]:
+                    if i in self.bottom_right_indexes and i in self.front_right_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [1, -1, -1]:
+                    if i in self.back_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [1, -1, 0]:
+                    if i in self.top_back_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [1, -1, 1]:
+                    if i in self.bottom_back_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [1, 0, -1]:
+                    if i in self.back_left_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [1, 0, 0]:
+                    if i in self.top_left_indexes and i in self.back_left_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [1, 0, 1]:
+                    if i in self.bottom_left_indexes and i in self.back_left_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [1, 1, -1]:
+                    if i in self.back_right_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [1, 1, 0]:
+                    if i in self.top_right_indexes and i in self.back_right_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case [1, 1, 1]:
+                    if i in self.bottom_right_indexes and i in self.back_right_indexes:
+                        new_point = new_speed_point
+                        changed=True
+                    else:
+                        new_point = self.points[i]
+                case _:
+                    new_point = self.points[i]
+
             # Append the scaled point to the list
             scaled_points.append(new_point)
                 
