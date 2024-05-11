@@ -4,7 +4,8 @@ import numpy as np
 import cv2
 import math
 import os
-sys.path.append(os.path.abspath(r"C:\Users\MikeTheMater\Desktop\Landing_Site_Detection"))
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
 import box_intersection
 
 def clamp(value, value_min, value_max):
