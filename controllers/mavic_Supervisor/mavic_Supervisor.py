@@ -186,45 +186,45 @@ class SuperMavic(Supervisor):
                 if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] < - math.sqrt(2)/2 :
                     print("Drone" + self.nameDef + " is looking in the direction of the negative x axis")
                     if speed_vector[0] > speed_accuracy:
-                        movement[0] = 1
+                        movement[0] = 1 # moving back
                     if speed_vector[0] < -speed_accuracy:
-                        movement[0] = 0
+                        movement[0] = 0 # moving front
                     if speed_vector[1] > speed_accuracy:
-                        movement[1] = 1
+                        movement[1] = 1 # moving right
                     if speed_vector[1] < -speed_accuracy:
-                        movement[1] = 0
+                        movement[1] = 0 # moving left
                     if speed_vector[2] > speed_accuracy:
-                        movement[2] = 0
+                        movement[2] = 0 # moving top
                     if speed_vector[2] < -speed_accuracy:
-                        movement[2] = 1
+                        movement[2] = 1 # moving bottom
                 if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] < - math.sqrt(2)/2 :
                     print("Drone" + self.nameDef + " is looking in the direction of the positive y axis")
                     if speed_vector[1] > speed_accuracy:
-                        movement[0] = 0
+                        movement[0] = 0 # moving front 
                     if speed_vector[1] < -speed_accuracy:
-                        movement[0] = 1
+                        movement[0] = 1 # moving back
                     if speed_vector[0] > speed_accuracy:
-                        movement[1] = 1
+                        movement[1] = 1 # moving right
                     if speed_vector[0] < -speed_accuracy:
-                        movement[1] = 0
+                        movement[1] = 0 # moving left
                     if speed_vector[2] > speed_accuracy:
-                        movement[2] = 0
+                        movement[2] = 0 # moving top
                     if speed_vector[2] < -speed_accuracy:
-                        movement[2] = 1
+                        movement[2] = 1 # moving bottom
                 if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] > math.sqrt(2)/2 :
                     print("Drone" + self.nameDef + " is looking in the direction of the negative y axis")
                     if speed_vector[1] > speed_accuracy:
-                        movement[0] = 1
+                        movement[0] = 1 # moving back
                     if speed_vector[1] < -speed_accuracy:
-                        movement[0] = 0
+                        movement[0] = 0 # moving front
                     if speed_vector[0] > speed_accuracy:
-                        movement[1] = 0
+                        movement[1] = 0 # moving left
                     if speed_vector[0] < -speed_accuracy:
-                        movement[1] = 1
+                        movement[1] = 1 # moving right
                     if speed_vector[2] > speed_accuracy:
-                        movement[2] = 0
+                        movement[2] = 0 # moving top
                     if speed_vector[2] < -speed_accuracy:
-                        movement[2] = 1
+                        movement[2] = 1 # moving bottom
                 
             new_speed_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
             
@@ -232,157 +232,131 @@ class SuperMavic(Supervisor):
                 case [-1, -1, 0]:
                     if i in self.top_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [-1, -1, 1]:
                     if i in self.bottom_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [-1, 0, -1]:
                     if i in self.left_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [-1, 0, 0]:
                     if i in self.top_left_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [-1, 0, 1]:
                     if i in self.bottom_left_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [-1, 1, -1]:
                     if i in self.right_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [-1, 1, 0]:
                     if i in self.top_right_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [-1, 1, 1]:
                     if i in self.bottom_right_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [0, -1, -1]:
                     if i in self.front_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [0, -1, 0]:
                     if i in self.top_front_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [0, -1, 1]:
                     if i in self.bottom_front_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [0, 0, -1]:
-                    if i in self.left_indexes:
+                    if i in self.front_left_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [0, 0, 0]:
                     if i in self.top_left_indexes and i in self.front_left_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [0, 0, 1]:
                     if i in self.bottom_left_indexes and i in self.front_left_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [0, 1, -1]:
                     if i in self.front_right_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [0, 1, 0]:
                     if i in self.top_right_indexes and i in self.front_right_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [0, 1, 1]:
                     if i in self.bottom_right_indexes and i in self.front_right_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [1, -1, -1]:
                     if i in self.back_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [1, -1, 0]:
                     if i in self.top_back_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [1, -1, 1]:
                     if i in self.bottom_back_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [1, 0, -1]:
                     if i in self.back_left_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [1, 0, 0]:
                     if i in self.top_left_indexes and i in self.back_left_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [1, 0, 1]:
                     if i in self.bottom_left_indexes and i in self.back_left_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [1, 1, -1]:
                     if i in self.back_right_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [1, 1, 0]:
                     if i in self.top_right_indexes and i in self.back_right_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case [1, 1, 1]:
                     if i in self.bottom_right_indexes and i in self.back_right_indexes:
                         new_point = new_speed_point
-                        changed=True
                     else:
                         new_point = self.points[i]
                 case _:
