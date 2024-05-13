@@ -80,20 +80,14 @@ class SuperMavic(Supervisor):
             speed = position_difference / 0.5  # Time difference is 0.5 second
 
             # Print the speed in each dimension (in meters per second)
-            print("Speed in x direction:", speed[0])
-            print("Speed in y direction:", speed[1])
-            print("Speed in z direction:", speed[2])
+            # print("Speed in x direction:", speed[0])
+            # print("Speed in y direction:", speed[1])
+            # print("Speed in z direction:", speed[2])
             return speed
     
     
     def change_bbox(self):
         speed_vector = self.calculateSpeed()
-
-        # Define scaling factors for each direction
-        scale_factor = 1  # Adjust as needed
-        
-        self.rotation_field = self.mavic.getField("rotation")
-        self.rotation = self.rotation_field.getSFRotation()
         
         self.orientation = self.mavic.getOrientation()
         self.x_orientation = [self.orientation[0], self.orientation[3], self.orientation[6]]
@@ -163,14 +157,13 @@ class SuperMavic(Supervisor):
             #vi) If the drone is moving in the negative z direction, the points that are at the bottom side of the drone should be moved    
             #  by the speed vector in the z direction
             
-            speed_accuracy = 0.2
-            rotation = self.rotation
-            changed=False
+            speed_accuracy = 0.2 # speed accuracy to consider the drone is moving in a direction
+            scale_factor = 1 # scale factor to move the points based on the speed vector
             #print(self.nameDef + " orientation ", self.orientation)   
             movement = [-1, -1, -1] # front/back (0,1), left/right(0,1), top/bottom(0,1)
             if self.position[2]> 0.1:
                 if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] > math.sqrt(2)/2 :
-                    print("Drone" + self.nameDef + " is looking in the direction of the positive x axis")
+                    #print("Drone" + self.nameDef + " is looking in the direction of the positive x axis")
                     if speed_vector[0] > speed_accuracy:
                         movement[0] = 0 # moving front
                     if speed_vector[0] < -speed_accuracy:
@@ -184,7 +177,7 @@ class SuperMavic(Supervisor):
                     if speed_vector[2] < -speed_accuracy:
                         movement[2] = 1 # moving bottom
                 if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] < - math.sqrt(2)/2 :
-                    print("Drone" + self.nameDef + " is looking in the direction of the negative x axis")
+                    #print("Drone" + self.nameDef + " is looking in the direction of the negative x axis")
                     if speed_vector[0] > speed_accuracy:
                         movement[0] = 1 # moving back
                     if speed_vector[0] < -speed_accuracy:
@@ -198,7 +191,7 @@ class SuperMavic(Supervisor):
                     if speed_vector[2] < -speed_accuracy:
                         movement[2] = 1 # moving bottom
                 if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] < - math.sqrt(2)/2 :
-                    print("Drone" + self.nameDef + " is looking in the direction of the positive y axis")
+                    #print("Drone" + self.nameDef + " is looking in the direction of the positive y axis")
                     if speed_vector[1] > speed_accuracy:
                         movement[0] = 0 # moving front 
                     if speed_vector[1] < -speed_accuracy:
@@ -212,7 +205,7 @@ class SuperMavic(Supervisor):
                     if speed_vector[2] < -speed_accuracy:
                         movement[2] = 1 # moving bottom
                 if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] > math.sqrt(2)/2 :
-                    print("Drone" + self.nameDef + " is looking in the direction of the negative y axis")
+                    #print("Drone" + self.nameDef + " is looking in the direction of the negative y axis")
                     if speed_vector[1] > speed_accuracy:
                         movement[0] = 1 # moving back
                     if speed_vector[1] < -speed_accuracy:
@@ -226,135 +219,135 @@ class SuperMavic(Supervisor):
                     if speed_vector[2] < -speed_accuracy:
                         movement[2] = 1 # moving bottom
                 
-            new_speed_point = [point[i] + speed_vector[i] * scale_factor for i in range(3)]
+            new_speed_point = [point[i] + (abs(speed_vector[i]) if i!=2 else speed_vector[i]) * scale_factor for i in range(3)]
             
             match movement:
-                case [-1, -1, 0]:
+                case [-1, -1, 0]: #Drone moving Upwards
                     if i in self.top_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [-1, -1, 1]:
+                case [-1, -1, 1]: #Drone moving Downwards
                     if i in self.bottom_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [-1, 0, -1]:
+                case [-1, 0, -1]: #Drone moving Left
                     if i in self.left_indexes:
                         new_point = new_speed_point
                     else:
-                        new_point = self.points[i]
-                case [-1, 0, 0]:
+                        new_point = self.points[i] 
+                case [-1, 0, 0]: #Drone moving Upwards and Left
                     if i in self.top_left_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [-1, 0, 1]:
+                case [-1, 0, 1]: #Drone moving Downwards and Left
                     if i in self.bottom_left_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [-1, 1, -1]:
+                case [-1, 1, -1]: #Drone moving Right
                     if i in self.right_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [-1, 1, 0]:
+                case [-1, 1, 0]: #Drone moving Upwards and Right
                     if i in self.top_right_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [-1, 1, 1]:
+                case [-1, 1, 1]: #Drone moving Downwards and Right 
                     if i in self.bottom_right_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [0, -1, -1]:
+                case [0, -1, -1]: #Drone moving Forward
                     if i in self.front_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [0, -1, 0]:
+                case [0, -1, 0]: #Drone moving Upwards and Forward
                     if i in self.top_front_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [0, -1, 1]:
+                case [0, -1, 1]: #Drone moving Downwards and Forward
                     if i in self.bottom_front_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [0, 0, -1]:
+                case [0, 0, -1]: #Drone moving Left and Forward
                     if i in self.front_left_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [0, 0, 0]:
+                case [0, 0, 0]: #Drone moving Upwards, Left and Forward
                     if i in self.top_left_indexes and i in self.front_left_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [0, 0, 1]:
+                case [0, 0, 1]: #Drone moving Downwards, Left and Forward
                     if i in self.bottom_left_indexes and i in self.front_left_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [0, 1, -1]:
+                case [0, 1, -1]: #Drone moving Right and Forward
                     if i in self.front_right_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [0, 1, 0]:
+                case [0, 1, 0]: #Drone moving Upwards, Right and Forward
                     if i in self.top_right_indexes and i in self.front_right_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [0, 1, 1]:
+                case [0, 1, 1]: #Drone moving Downwards, Right and Forward
                     if i in self.bottom_right_indexes and i in self.front_right_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [1, -1, -1]:
+                case [1, -1, -1]: #Drone moving Backward
                     if i in self.back_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [1, -1, 0]:
+                case [1, -1, 0]: #Drone moving Upwards and Backward
                     if i in self.top_back_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [1, -1, 1]:
+                case [1, -1, 1]: #Drone moving Downwards and Backward
                     if i in self.bottom_back_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [1, 0, -1]:
+                case [1, 0, -1]: #Drone moving Left and Backward
                     if i in self.back_left_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [1, 0, 0]:
+                case [1, 0, 0]: #Drone moving Upwards, Left and Backward
                     if i in self.top_left_indexes and i in self.back_left_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [1, 0, 1]:
+                case [1, 0, 1]: #Drone moving Downwards, Left and Backward
                     if i in self.bottom_left_indexes and i in self.back_left_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [1, 1, -1]:
+                case [1, 1, -1]: #Drone moving Right and Backward
                     if i in self.back_right_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [1, 1, 0]:
+                case [1, 1, 0]: #Drone moving Upwards, Right and Backward
                     if i in self.top_right_indexes and i in self.back_right_indexes:
                         new_point = new_speed_point
                     else:
                         new_point = self.points[i]
-                case [1, 1, 1]:
+                case [1, 1, 1]: #Drone moving Downwards, Right and Backward
                     if i in self.bottom_right_indexes and i in self.back_right_indexes:
                         new_point = new_speed_point
                     else:
