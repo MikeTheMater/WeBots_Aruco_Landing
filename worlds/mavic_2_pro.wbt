@@ -12,7 +12,7 @@ WorldInfo {
     "This demonstration shows a DJI Mavic 2 PRO flying over a rural area."
     "After the drone has taken off, you can control it with the keyboard of your computer."
   ]
-  title "DJI Mavic 2 PRO demo"
+  title "UAV Landing and Collision Detection"
   basicTimeStep 8
   defaultDamping Damping {
     linear 0.5
@@ -20,8 +20,8 @@ WorldInfo {
   }
 }
 Viewpoint {
-  orientation 0.567176388290302 0.5680816101436346 -0.5963172216048973 2.0648465113286942
-  position -0.28101550242842177 -0.49777275853840264 4.717026528010399
+  orientation 0.5283662789009612 0.5345326299933325 -0.6596240920348213 1.9647569648271304
+  position -0.15183104889701957 0.3334812857435927 4.574010866302608
   near 0.2
   follow "Mavic 2 PRO"
   followSmoothness 0.2
@@ -106,7 +106,7 @@ SquareManhole {
 }
 DEF Mavic_2_PRO_1 Robot {
   translation -0.0562353 -0.869229 0.0857087
-  rotation -0.03484440718949606 0.03484220718904213 -0.9987852060807713 1.57198
+  rotation -0.03484430743229331 0.03484210743182405 -0.9987852130409586 1.57198
   children [
     DEF BODY_SLOT Group {
       children [

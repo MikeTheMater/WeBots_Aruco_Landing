@@ -11,5 +11,5 @@ orthographicViewHeight: 1
 textFiles: -1
 globalOptionalRendering: AllBoundingObjects
 consoles: Console:All:All
-renderingDevicePerspectives: Mavic 2 PRO(1):camera;1;0.265733;0.894554;0
+renderingDevicePerspectives: Mavic 2 PRO(1):camera;1;0.197457;0.894554;0
 renderingDevicePerspectives: Mavic 2 PRO:camera;1;0.209959;0;0
