@@ -5,6 +5,7 @@ import math
 import struct
 import ast
 import os
+import json
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
 import box_intersection
@@ -29,6 +30,7 @@ class SuperMavic(Supervisor):
         
         self.points = []
         for i in range(20):
+            #The points of the Bounding box of the drone
             self.points.append(self.point_field.getMFVec3f(i))
         
         self.top_indexes = [4, 5, 6, 7, 16, 17, 18, 19]
@@ -53,12 +55,16 @@ class SuperMavic(Supervisor):
 
         self.connections= self.geometry_field.getSFNode().getField("coordIndex")
         self.coordIndex = [self.connections.getMFInt32(i) for i in range(self.connections.getCount())]
+        #Triangles using the index of the point in the list of points of the box 
         self.triangles=[[0, 8, 9], [0, 8, 10], [0, 9, 10], [1, 8, 11], [1, 8, 12], [1, 11, 12],
                         [2, 9, 13], [2, 9, 14], [2, 13, 14], [3, 11, 13], [3, 11, 15], [3, 13, 15],
                         [4, 10, 16], [4, 10, 17], [4, 16, 17], [5, 12, 16], [5, 12, 18], [5, 16, 18],
                         [6, 14, 17], [6, 14, 19], [6, 17, 19], [7, 15, 18], [7, 15, 19], [7, 18, 19],
                         [8, 9, 11], [8, 10, 12], [9, 10, 17], [9, 11, 13], [9, 14, 17], [10, 12, 16],
                         [11, 12, 18], [11, 15, 18], [13, 14, 15], [14, 15, 19], [16, 17, 18], [17, 18, 19]]
+        
+        # Store data from other drones
+        self.other_drones_data = []
         
         self.isNAN = False
         #print("Initial points:", self.points)
@@ -171,10 +177,11 @@ class SuperMavic(Supervisor):
             scale_factor = 1 # scale factor to move the points based on the speed vector
             #print(self.nameDef + " orientation ", self.orientation)   
             movement = [-1, -1, -1] # front/back (0,1), left/right(0,1), top/bottom(0,1)
+            changed = False
             if self.position[2]> 0.1:
                 #Fixed the positive and negative x axises, positive and negative y axis
                 if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] > math.sqrt(2)/2 :
-                    print("Drone" + self.nameDef + " is looking in the direction of the positive x axis")
+                    #print("Drone" + self.nameDef + " is looking in the direction of the positive x axis")
                     if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.front_indexes or i in self.left_indexes) and not changed:
                         new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
                         changed=True
@@ -247,7 +254,7 @@ class SuperMavic(Supervisor):
                     
                         
                 if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] < - math.sqrt(2)/2 :
-                    print("Drone" + self.nameDef + " is looking in the direction of the negative x axis")
+                    #print("Drone" + self.nameDef + " is looking in the direction of the negative x axis")
                     if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.back_indexes or i in self.right_indexes) and not changed:
                         new_point = [point[0] - speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
                         changed=True
@@ -316,7 +323,7 @@ class SuperMavic(Supervisor):
 
 
                 if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] < - math.sqrt(2)/2 :
-                    print("Drone" + self.nameDef + " is looking in the direction of the positive y axis")
+                    #print("Drone" + self.nameDef + " is looking in the direction of the positive y axis")
                     if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.front_indexes or i in self.right_indexes) and not changed:
                         new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2]]
                         changed=True                       
@@ -385,7 +392,7 @@ class SuperMavic(Supervisor):
 
 
                 if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] > math.sqrt(2)/2 :
-                    print("Drone" + self.nameDef + " is looking in the direction of the negative y axis")
+                    #print("Drone" + self.nameDef + " is looking in the direction of the negative y axis")
                     if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.back_indexes or i in self.left_indexes) and not changed:
                         new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2]]
                         changed=True
@@ -471,58 +478,66 @@ class SuperMavic(Supervisor):
             #print("Point ", i, ":", points[i])
             #print("self.point", i, ":", self.points[i])
 
-    def findPointsFromMessage(self, message):
-        
-        # Extracting the string representation of the box vertices
-        start_index = message.find("[")
-        end_index = message.rfind("]") + 1  # Add 1 to include the closing bracket
-        box_vertices_str = message[start_index:end_index]
-        vertices_list = box_vertices_str.split(",")
-        vertices_list = [coord.strip("()") for coord in vertices_list]
-        vertices_list = [coord.replace("(", "") for coord in vertices_list]
-        vertices_list = [coord.replace(")", "") for coord in vertices_list]
-        vertices_list = [coord.replace("[", "") for coord in vertices_list]
-        vertices_list = [coord.replace("]", "") for coord in vertices_list]
-        vertices_list = [coord.replace(" ", "") for coord in vertices_list]
-        vertices_list = [coord.split(",") for coord in vertices_list]
-        vertices_list = [[float(coord) for coord in vertex] for vertex in vertices_list]
-        vertices_list = [vertex for sublist in vertices_list for vertex in sublist]
-        # Combine the vertices into triples
-        points = [tuple(vertices_list[i:i+3]) for i in range(0, len(vertices_list), 3)]
+    def send_data(self):
+        position = self.mavic.getPosition()
+        triangles = self.get_triangles()  # Assume this function returns the triangles data
+        points_list = [vertex.tolist() for triangle in triangles for vertex in triangle]  # Convert to list of lists
+        message = json.dumps({"name": self.nameDef, "position": position, "points": points_list})  # Serialize to JSON
+        self.emitter.send(message.encode())  # Send as byte data
 
-        #print(points)
+    def receive_data(self):
+        self.other_drones_data.clear()
+        while self.receiver.getQueueLength() > 0:
+            received_message = self.receiver.getString()  # Get the message as a string
+            data = json.loads(received_message)  # Deserialize JSON
+            other_drone_name = data["name"]
+            box2 = self.findPointsFromMessage(data["points"])  # Extract points
+            self.other_drones_data.append((other_drone_name, box2))
+            self.receiver.nextPacket()
+
+            # Print points for both drones
+            #print(f"Drone {self.nameDef} has these points: {self.points}")
+            #print(f"Drone {other_drone_name} has these points: {box2}")
+
+    def check_collisions(self):
+        box1 = self.get_triangles()
+        for other_drone_name, other_triangles in self.other_drones_data:
+            collision = self.findCollision(box1, other_triangles)
+            if collision:
+                print(f"Collision detected between {self.nameDef} and {other_drone_name}.")
+            else:
+                print(f"No collision detected between {self.nameDef} and {other_drone_name}.")
+
+    def findPointsFromMessage(self, points_list):
+        points = [tuple(points_list[i:i+3]) for i in range(0, len(points_list), 3)]
         return points
-            
+
+    def get_triangles(self):
+        # Get the current position of the drone
+        position = self.mavic.getPosition()
+        
+        # Convert self.triangles indices to actual coordinates from self.points
+        triangles_coords = []
+        for triangle in self.triangles:
+            triangle_coords = np.array([self.points[idx] for idx in triangle])
+            global_triangle_coords = triangle_coords + position  # Add position to each point
+            triangles_coords.append(global_triangle_coords)
+        return triangles_coords
+
     def findCollision(self, box1, box2):
-        box1 = box_intersection.Box(box1)
-        box2 = box_intersection.Box(box2)
-        return box_intersection.boxes_intersect(box1, box2)
+        for triangle1 in box1:
+            for triangle2 in box2:
+                if box_intersection.triangles_intersect(np.array(triangle1).reshape(3, 3), np.array(triangle2).reshape(3, 3)):
+                    return True
+        return False
         
     def run(self):
         while self.step(self.time_step) != -1:
             
             self.change_bbox()
-            # message="bbox of "+self.nameDef+" "
-            # self.emitter.send(message)
-            # # Example: Receive a message on the receiver
-            # if self.receiver.getQueueLength() > 0:
-            #     received_message = self.receiver.getString()
-            #     #print("Received message to "+self.nameDef+":" , received_message)
-            #     self.receiver.nextPacket()  # Move to the next received packet
-
-            #     box1=self.calculateVerticesOfBox()                
-
-                
-            #     box2 = self.findPointsFromMessage(received_message)
-                
-            #     collision = self.findCollision(box1, box2)
-            #     # if collision:
-            #     #     print("Collision detected from " + self.nameDef + " with the other drone.")
-            #     #     # Handle collision logic here
-            #     # else:
-            #     #     print("No collision detected from " + self.nameDef + " with the other drone.")
-
-            
+            self.send_data()
+            self.receive_data()
+            self.check_collisions()
             self.simulationResetPhysics()
             
             if self.isNAN:

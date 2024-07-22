@@ -1,86 +1,79 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
-class Box:
-    def __init__(self, vertices):
-        self.vertices = np.array(vertices)
+def triangles_intersect(triangle1, triangle2):
+    """Check if two triangles intersect.
 
-    def is_point_inside(self, point):
-        x, y, z = point
-        xmin, ymin, zmin = self.vertices[0]
-        xmax, ymax, zmax = self.vertices[7]
-        return xmin <= x <= xmax and ymin <= y <= ymax and zmin <= z <= zmax
+    Args:
+        triangle1: np.array of shape (3, 3), representing the first triangle's vertices.
+        triangle2: np.array of shape (3, 3), representing the second triangle's vertices.
 
-def boxes_intersect(box1, box2):
-    for vertex in box1.vertices:
-        if box2.is_point_inside(vertex):
-            return True
-    for vertex in box2.vertices:
-        if box1.is_point_inside(vertex):
-            return True
+    Returns:
+        bool: True if the triangles intersect, False otherwise.
+    """
+    v1, v2, v3 = triangle1
+    w1, w2, w3 = triangle2
+
+    # Compute the normal vectors of the triangles
+    n1 = np.cross(v2 - v1, v3 - v1)
+    n2 = np.cross(w2 - w1, w3 - w1)
+
+    # Check if the triangles are parallel
+    if np.allclose(np.dot(n1, n2), 0):
+        return False
+
+    # Compute the distances from the origin to the triangles
+    d1 = -np.dot(n1, v1)
+    d2 = -np.dot(n2, w1)
+
+    # Check if the triangles are on the same side of each other
+    if np.dot(n1, w1) + d1 < 0 and np.dot(n1, w2) + d1 < 0 and np.dot(n1, w3) + d1 < 0:
+        return False
+    if np.dot(n2, v1) + d2 < 0 and np.dot(n2, v2) + d2 < 0 and np.dot(n2, v3) + d2 < 0:
+        return False
+
+    # Check for intersection along the edges of the triangles
+    for (a, b) in [(v1, v2), (v2, v3), (v3, v1)]:
+        for (c, d) in [(w1, w2), (w2, w3), (w3, w1)]:
+            if edges_intersect(a, b, c, d):
+                return True
+
     return False
 
-def plot_box(ax, vertices, color='b'):
-    edges = [
-        [vertices[0], vertices[1], vertices[2], vertices[3], vertices[0]],
-        [vertices[4], vertices[5], vertices[6], vertices[7], vertices[4]],
-        [vertices[0], vertices[4]],
-        [vertices[1], vertices[5]],
-        [vertices[2], vertices[6]],
-        [vertices[3], vertices[7]]
-    ]
-    for edge in edges:
-        ax.plot3D(*zip(*edge), color=color)
+def edges_intersect(a, b, c, d):
+    """Check if two edges (a, b) and (c, d) intersect.
 
-def example_run():
-    # Example usage:
-    box1_vertices = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0),
-                    (0, 0, 1), (1, 0, 1), (1, 1, 1), (0, 1, 1)]
-    box2_vertices = [(0, 0, 0), (1.5, 0.5, 0.5), (1.5, 1.5, 0.5), (0.5, 1.5, 0.5),
-                    (0.5, 0.5, 1.5), (1.5, 0.5, 1.5), (1.5, 1.5, 1.5), (0.5, 1.5, 1.5)]
+    Args:
+        a, b: np.array of shape (3,), representing the first edge's endpoints.
+        c, d: np.array of shape (3,), representing the second edge's endpoints.
 
-    box1 = Box(box1_vertices)
-    box2 = Box(box2_vertices)
+    Returns:
+        bool: True if the edges intersect, False otherwise.
+    """
+    def ccw(p, q, r):
+        return (r[1] - p[1]) * (q[0] - p[0]) > (q[1] - p[1]) * (r[0] - p[0])
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    return ccw(a, c, d) != ccw(b, c, d) and ccw(a, b, c) != ccw(a, b, d)
 
-    plot_box(ax, box1.vertices, color='b')
-    plot_box(ax, box2.vertices, color='r')
+def is_point_in_triangle(pt, tri):
+    """Check if a point is inside a triangle.
 
-    if boxes_intersect(box1, box2):
-        print("The boxes intersect.")
-    else:
-        print("The boxes do not intersect.")
+    Args:
+        pt: np.array of shape (3,), the point to check.
+        tri: np.array of shape (3, 3), the triangle vertices.
 
-    plt.show()
+    Returns:
+        bool: True if the point is inside the triangle, False otherwise.
+    """
+    v2 = pt - tri[0]
+    v0 = tri[1] - tri[0]
+    v1 = tri[2] - tri[0]
+    dot00 = np.dot(v0, v0)
+    dot01 = np.dot(v0, v1)
+    dot02 = np.dot(v0, v2)
+    dot11 = np.dot(v1, v1)
+    dot12 = np.dot(v1, v2)
 
-def get_points_from_message():
-    # Assuming message is constructed as described
-    message = "bbox of Mavic_2_PRO_2 [(0.18, 0.28, 1.03), (0.18, 0.28, -0.07), (0.18, -0.28, -0.07), (0.18, -0.28, 1.03), (-0.3, 0.28, 1.03), (-0.3, 0.28, -0.07), (-0.3, -0.28, -0.07), (-0.3, -0.28, 1.03)]"
-
-    # Extracting the string representation of the box vertices
-    start_index = message.find("[")
-    end_index = message.rfind("]") + 1  # Add 1 to include the closing bracket
-    box_vertices_str = message[start_index:end_index]
-    vertices_list = box_vertices_str.split(",")
-    vertices_list = [coord.strip("()") for coord in vertices_list]
-    vertices_list = [coord.replace("(", "") for coord in vertices_list]
-    vertices_list = [coord.replace(")", "") for coord in vertices_list]
-    vertices_list = [coord.replace("[", "") for coord in vertices_list]
-    vertices_list = [coord.replace("]", "") for coord in vertices_list]
-    vertices_list = [coord.replace(" ", "") for coord in vertices_list]
-    vertices_list = [coord.split(",") for coord in vertices_list]
-    vertices_list = [[float(coord) for coord in vertex] for vertex in vertices_list]
-    vertices_list = [vertex for sublist in vertices_list for vertex in sublist]
-
-    print(vertices_list)
-    # Combine the vertices into triples
-    points = [tuple(vertices_list[i:i+3]) for i in range(0, len(vertices_list), 3)]
-
-    print(points)
-    # Convert each string element to a float and keep it in a tuple
-    box_vertices = tuple(float(coord) for coord in vertices_list)
-
-    print(box_vertices)
+    invDenom = 1 / (dot00 * dot11 - dot01 * dot01)
+    u = (dot11 * dot02 - dot01 * dot12) * invDenom
+    v = (dot00 * dot12 - dot01 * dot02) * invDenom
+    return (u >= 0) and (v >= 0) and (u + v < 1)
