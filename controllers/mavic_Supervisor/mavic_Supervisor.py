@@ -113,7 +113,7 @@ class SuperMavic(Supervisor):
         # Normalize the speed vector
         speed_vector = speed_vector / np.linalg.norm(speed_vector)
         
-        scaled_points = []
+        self.scaled_points = []
         for i in range(20):
             # Scale the points based on the speed in each direction
             point = self.points[i]
@@ -458,6 +458,7 @@ class SuperMavic(Supervisor):
                         # Moving in negative Z direction, adjust points at bottom side
                         new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
                         changed = True
+
                         
             if not changed:
                 new_point = self.points[i][:]  
@@ -465,11 +466,11 @@ class SuperMavic(Supervisor):
             #new_speed_point = [new_point[j] + (abs(speed_vector[j]) if j!=2 else speed_vector[j]) * scale_factor for j in range(3)]
 
             # Append the scaled point to the list
-            scaled_points.append(new_point)
+            self.scaled_points.append(new_point)
                 
 
         # Update the bounding box using the scaled points
-        self.updateBoundingBox(scaled_points)
+        self.updateBoundingBox(self.scaled_points)
     
     def updateBoundingBox(self, points):
         # Update the bounding box using the new points
@@ -504,7 +505,7 @@ class SuperMavic(Supervisor):
         for other_drone_name, other_triangles in self.other_drones_data:
             collision = self.findCollision(box1, other_triangles)
             if collision:
-                print(f"Collision detected between {self.nameDef} and {other_drone_name}.")
+                print(f"Possible collision detected between {self.nameDef} and {other_drone_name}.")
             else:
                 print(f"No collision detected between {self.nameDef} and {other_drone_name}.")
 
@@ -519,15 +520,18 @@ class SuperMavic(Supervisor):
         # Convert self.triangles indices to actual coordinates from self.points
         triangles_coords = []
         for triangle in self.triangles:
-            triangle_coords = np.array([self.points[idx] for idx in triangle])
+            triangle_coords = np.array([self.scaled_points[idx] for idx in triangle])
             global_triangle_coords = triangle_coords + position  # Add position to each point
             triangles_coords.append(global_triangle_coords)
         return triangles_coords
-
-    def findCollision(self, box1, box2):
+    
+        """It doesn't detect the collision correctly
+        it doesn't detect the collision of the bbox of the drones but of the drones themselves"""
+    def findCollision(self, box1, box2, tolerance=1e-6):
         for triangle1 in box1:
             for triangle2 in box2:
-                if box_intersection.triangles_intersect(np.array(triangle1).reshape(3, 3), np.array(triangle2).reshape(3, 3)):
+                if box_intersection.triangles_intersect(np.array(triangle1).reshape(3, 3), np.array(triangle2).reshape(3, 3), tolerance=tolerance):
+                    print("Possible collision detected on triangles:" , triangle1, triangle2)
                     return True
         return False
         
