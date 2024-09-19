@@ -123,6 +123,7 @@ class SuperMavic(Supervisor):
         for i in range(20):
             # Scale the points based on the speed in each direction
             point = self.points[i]
+            #point = self.rotate_point(point, self.orientation) 
             #Cases for the direction of the drone and the sign of the speed vector components 
             #also the rotation of the drone to change the points that are at the side of the drone 
             #that is moving
@@ -487,7 +488,7 @@ class SuperMavic(Supervisor):
 
     def send_data(self):
         position = self.mavic.getPosition()
-        triangles = self.get_triangles()  # Assume this function returns the triangles data
+        triangles = self.get_triangles() 
         points_list = [vertex.tolist() for triangle in triangles for vertex in triangle]  # Convert to list of lists
         message = json.dumps({"name": self.nameDef, "position": position, "points": points_list})  # Serialize to JSON
         self.emitter.send(message.encode())  # Send as byte data
@@ -505,6 +506,14 @@ class SuperMavic(Supervisor):
             # Print points for both drones
             #print(f"Drone {self.nameDef} has these points: {self.points}")
             #print(f"Drone {other_drone_name} has these points: {box2}")
+    def rotate_point(self, point, orientation_matrix):
+        x_rot = np.dot(point, orientation_matrix[:3])  # Rotate the x component
+        y_rot = np.dot(point, orientation_matrix[3:6])  # Rotate the y component
+        z_rot = np.dot(point, orientation_matrix[6:9])  # Rotate the z component
+        return [x_rot, y_rot, z_rot]
+
+    def transform_points(self, points, orientation_matrix):
+        return [self.rotate_point(point, orientation_matrix) for point in points]
 
     def check_collisions(self):
         box1 = self.get_triangles()
@@ -516,17 +525,18 @@ class SuperMavic(Supervisor):
                 print(f"No collision detected between {self.nameDef} and {other_drone_name}.")
 
     def findPointsFromMessage(self, points_list):
-        points = [tuple(points_list[i:i+3]) for i in range(0, len(points_list), 3)]
+        points = [list(points_list[i:i+3]) for i in range(0, len(points_list), 3)]
         return points
 
     def get_triangles(self):
         # Get the current position of the drone
         position = self.mavic.getPosition()
         
+        transformed_points = self.transform_points(self.scaled_points, self.orientation)
         # Convert self.triangles indices to actual coordinates from self.points
         triangles_coords = []
         for triangle in self.triangles:
-            triangle_coords = np.array([self.scaled_points[idx] for idx in triangle])
+            triangle_coords = np.array([transformed_points[idx] for idx in triangle])
             global_triangle_coords = triangle_coords + position  # Add position to each point
             triangles_coords.append(global_triangle_coords)
         return triangles_coords
