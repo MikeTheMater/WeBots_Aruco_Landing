@@ -58,7 +58,7 @@ class SuperMavic(Supervisor):
         self.coordIndex = [self.connections.getMFInt32(i) for i in range(self.connections.getCount())]
         #Triangles using the index of the point in the list of points of the box 
         self.triangles= Trying_the_normal.find_triangles(self.points, self.coordIndex)
-        print ("Triangles", self.triangles)
+        #print ("Triangles", self.triangles)
         # Store data from other drones
         self.other_drones_data = []
         
@@ -115,7 +115,7 @@ class SuperMavic(Supervisor):
 
         # Calculate the normals of the points
         normals = Trying_the_normal.calculate_point_normals(self.points, self.triangles, center)
-        threshold=0.4
+        threshold=0.6
         points_in_direction, points_opposite_direction = Trying_the_normal.classify_points_by_normal(normals, speed_vector, threshold)
 
 
@@ -185,291 +185,285 @@ class SuperMavic(Supervisor):
             changed = False
             
             if self.position[2]> 0.1:
-                print("speed",speed_vector)
-                print("points towards speed", points_in_direction)
-                if i in points_in_direction and (speed_vector[0] > speed_accuracy or speed_vector[1] > speed_accuracy or speed_vector[2] > speed_accuracy):
-                    new_point=[point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-                    changed=True
-            # if self.position[2]> 0.1:
-            #     #Fixed the positive and negative x axises, positive and negative y axis
-            #     if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] > math.sqrt(2)/2 :
-            #         #print("Drone" + self.nameDef + " is looking in the direction of the positive x axis")
-            #         if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.front_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
-            #             changed=True
+                #Fixed the positive and negative x axises, positive and negative y axis
+                if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] > math.sqrt(2)/2 :
+                    #print("Drone" + self.nameDef + " is looking in the direction of the positive x axis")
+                    if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
+                        changed=True
                         
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.back_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] > speed_accuracy and speed_vector[1] < - speed_accuracy and (i in self.front_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[1] < - speed_accuracy and (i in self.back_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
-            #             changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] > speed_accuracy and speed_vector[1] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[1] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
+                        changed=True
                     
-            #         if speed_vector[0] > speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.front_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.back_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] > speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.front_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.back_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
+                    if speed_vector[0] > speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] > speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
                     
-            #         if speed_vector[1] > speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0], point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] < - speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0], point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] > speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0], point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] < - speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0], point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
+                    if speed_vector[1] > speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0], point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0], point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] > speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0], point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0], point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
                         
-            #         if speed_vector[0] > speed_accuracy and i in self.front_indexes and not changed:
-            #             # Moving in positive X direction, adjust points at front side
-            #             new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2]]
-            #             changed=True
+                    if speed_vector[0] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive X direction, adjust points at front side
+                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2]]
+                        changed=True
                     
-            #         elif speed_vector[0] < - speed_accuracy and i in self.back_indexes and not changed:
-            #             # Moving in negative X direction, adjust points at back side
-            #             new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2]]
-            #             changed=True
+                    elif speed_vector[0] < - speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative X direction, adjust points at back side
+                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1], point[2]]
+                        changed=True
         
-            #         if speed_vector[1] > speed_accuracy and i in self.left_indexes and not changed:
-            #             # Moving in positive Y direction, adjust points at left side
-            #             new_point = [point[0] , point[1] + speed_vector[1] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[1] < - speed_accuracy and i in self.right_indexes and not changed:
-            #             # Moving in negative Y direction, adjust points at right side
-            #             new_point = [point[0] , point[1] + speed_vector[1] * scale_factor, point[2]]
-            #             changed=True
+                    if speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive Y direction, adjust points at left side
+                        new_point = [point[0] , point[1] + speed_vector[1] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative Y direction, adjust points at right side
+                        new_point = [point[0] , point[1] + speed_vector[1] * scale_factor, point[2]]
+                        changed=True
         
-            #         if speed_vector[2] > speed_accuracy and i in self.top_indexes and not changed:
-            #             # Moving in positive Z direction, adjust points at top side
-            #             new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #             print("Moving forward on the positive z axis")
-            #         elif speed_vector[2] < - speed_accuracy and i in self.bottom_indexes and not changed:
-            #             # Moving in negative Z direction, adjust points at bottom side
-            #             new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
+                    if speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive Z direction, adjust points at top side
+                        new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                        print("Moving forward on the positive z axis")
+                    elif speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative Z direction, adjust points at bottom side
+                        new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
                     
                     
                         
-            #     if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] < - math.sqrt(2)/2 :
-            #         #print("Drone" + self.nameDef + " is looking in the direction of the negative x axis")
-            #         if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.back_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.front_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[0] * scale_factor, point[1] - speed_vector[1] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] > speed_accuracy and speed_vector[1] < - speed_accuracy and (i in self.back_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[0] * scale_factor, point[1] - speed_vector[1] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[1] < - speed_accuracy and (i in self.front_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[0] * scale_factor, point[1] - speed_vector[1] * scale_factor, point[2]]
-            #             changed=True
+                if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] < - math.sqrt(2)/2 :
+                    #print("Drone" + self.nameDef + " is looking in the direction of the negative x axis")
+                    if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1] - speed_vector[1] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] > speed_accuracy and speed_vector[1] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1] - speed_vector[1] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[1] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1] - speed_vector[1] * scale_factor, point[2]]
+                        changed=True
                     
-            #         if speed_vector[0] > speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.back_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.front_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] > speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.back_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.front_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
+                    if speed_vector[0] > speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] > speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
                     
-            #         if speed_vector[1] > speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] < - speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] > speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] < - speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
+                    if speed_vector[1] > speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] > speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
                     
-            #         if speed_vector[0] > speed_accuracy and i in self.back_indexes and not changed:
-            #             # Moving in positive X direction, adjust points at back side
-            #             new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2]]
-            #             changed=True
-            #         elif speed_vector[0] < -speed_accuracy and i in self.front_indexes and not changed:
-            #             # Moving in negative X direction, adjust points at front side
-            #             new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2]]
-            #             changed=True
+                    if speed_vector[0] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive X direction, adjust points at back side
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2]]
+                        changed=True
+                    elif speed_vector[0] < -speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative X direction, adjust points at front side
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1], point[2]]
+                        changed=True
                     
-            #         if speed_vector[1] > speed_accuracy and i in self.right_indexes and not changed:
-            #             # Moving in positive Y direction, adjust points at right side
-            #             new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2]]
-            #             changed = True
-            #         elif speed_vector[1] < -speed_accuracy and i in self.left_indexes and not changed:
-            #             # Moving in negative Y direction, adjust points at left side
-            #             new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2]]
-            #             changed = True
+                    if speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive Y direction, adjust points at right side
+                        new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2]]
+                        changed = True
+                    elif speed_vector[1] < -speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative Y direction, adjust points at left side
+                        new_point = [point[0], point[1] - speed_vector[1] * scale_factor, point[2]]
+                        changed = True
                     
-            #         if speed_vector[2] > speed_accuracy and i in self.top_indexes and not changed:
-            #             # Moving in positive Z direction, adjust points at top side
-            #             new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed = True
-            #         elif speed_vector[2] < -speed_accuracy and i in self.bottom_indexes and not changed:
-            #             # Moving in negative Z direction, adjust points at bottom side
-            #             new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed = True
+                    if speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive Z direction, adjust points at top side
+                        new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed = True
+                    elif speed_vector[2] < -speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative Z direction, adjust points at bottom side
+                        new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed = True
 
 
-            #     if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] < - math.sqrt(2)/2 :
-            #         #print("Drone" + self.nameDef + " is looking in the direction of the positive y axis")
-            #         if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.front_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2]]
-            #             changed=True                       
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.front_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] > speed_accuracy and speed_vector[1] < - speed_accuracy and (i in self.back_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[1] < - speed_accuracy and (i in self.back_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
+                if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] < - math.sqrt(2)/2 :
+                    #print("Drone" + self.nameDef + " is looking in the direction of the positive y axis")
+                    if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2]]
+                        changed=True                       
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] > speed_accuracy and speed_vector[1] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[1] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2]]
+                        changed=True
                     
-            #         if speed_vector[0] > speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] , point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] , point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] > speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] , point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] , point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
+                    if speed_vector[0] > speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] , point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] , point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] > speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] , point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] , point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
                     
-            #         if speed_vector[1] > speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.front_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] < - speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.back_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] > speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.front_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] < - speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.back_indexes) and not changed:
-            #             new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
+                    if speed_vector[1] > speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] > speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
                     
-            #         if speed_vector[0] > speed_accuracy and i in self.right_indexes and not changed:
-            #             # Moving in positive X direction, adjust points at right side
-            #             new_point = [point[0], point[1] - speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and i in self.left_indexes and not changed:
-            #             # Moving in negative X direction, adjust points at left side
-            #             new_point = [point[0], point[1] - speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
+                    if speed_vector[0] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive X direction, adjust points at right side
+                        new_point = [point[0], point[1] - speed_vector[0] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative X direction, adjust points at left side
+                        new_point = [point[0], point[1] - speed_vector[0] * scale_factor, point[2]]
+                        changed=True
                     
-            #         if speed_vector[1] > speed_accuracy and i in self.front_indexes and not changed:
-            #             # Moving in positive Y direction, adjust points at front side
-            #             new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2]]
-            #             changed=True
-            #         elif speed_vector[1] < - speed_accuracy and i in self.back_indexes and not changed:
-            #             # Moving in negative Y direction, adjust points at back side
-            #             new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2]]
-            #             changed=True
+                    if speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive Y direction, adjust points at front side
+                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2]]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative Y direction, adjust points at back side
+                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1], point[2]]
+                        changed=True
                     
-            #         if speed_vector[2] > speed_accuracy and i in self.top_indexes and not changed:
-            #             # Moving in positive Z direction, adjust points at top side
-            #             new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[2] < - speed_accuracy and i in self.bottom_indexes and not changed:
-            #             # Moving in negative Z direction, adjust points at bottom side
-            #             new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
+                    if speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive Z direction, adjust points at top side
+                        new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative Z direction, adjust points at bottom side
+                        new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
 
 
-            #     if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] > math.sqrt(2)/2 :
-            #         #print("Drone" + self.nameDef + " is looking in the direction of the negative y axis")
-            #         if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.back_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[1] > speed_accuracy and (i in self.back_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] > speed_accuracy and speed_vector[1] < - speed_accuracy and (i in self.front_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[1] < - speed_accuracy and (i in self.front_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
+                if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] > math.sqrt(2)/2 :
+                    #print("Drone" + self.nameDef + " is looking in the direction of the negative y axis")
+                    if speed_vector[0] > speed_accuracy and speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] > speed_accuracy and speed_vector[1] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[1] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2]]
+                        changed=True
                     
-            #         if speed_vector[0] > speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] , point[1] + speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] , point[1] + speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] > speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.left_indexes) and not changed:
-            #             new_point = [point[0] , point[1] + speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[0] < - speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.right_indexes) and not changed:
-            #             new_point = [point[0] , point[1] + speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
+                    if speed_vector[0] > speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] , point[1] + speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] , point[1] + speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] > speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] , point[1] + speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[0] < - speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] , point[1] + speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        changed=True
                     
-            #         if speed_vector[1] > speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.back_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] < - speed_accuracy and speed_vector[2] > speed_accuracy and (i in self.top_indexes or i in self.front_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] > speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.back_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
-            #         elif speed_vector[1] < - speed_accuracy and speed_vector[2] < - speed_accuracy and (i in self.bottom_indexes or i in self.front_indexes) and not changed:
-            #             new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed=True
+                    if speed_vector[1] > speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] > speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
+                    elif speed_vector[1] < - speed_accuracy and speed_vector[2] < - speed_accuracy and i in points_in_direction and not changed:
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed=True
                     
-            #         if speed_vector[0] > speed_accuracy and i in self.left_indexes and not changed:
-            #             # Moving in positive X direction, adjust points at left side
-            #             new_point = [point[0], point[1] + speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
-            #         elif speed_vector[0] < -speed_accuracy and i in self.right_indexes and not changed:
-            #             # Moving in negative X direction, adjust points at right side
-            #             new_point = [point[0], point[1] + speed_vector[0] * scale_factor, point[2]]
-            #             changed=True
+                    if speed_vector[0] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive X direction, adjust points at left side
+                        new_point = [point[0], point[1] + speed_vector[0] * scale_factor, point[2]]
+                        changed=True
+                    elif speed_vector[0] < -speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative X direction, adjust points at right side
+                        new_point = [point[0], point[1] + speed_vector[0] * scale_factor, point[2]]
+                        changed=True
                     
-            #         if speed_vector[1] > speed_accuracy and i in self.back_indexes and not changed:
-            #             # Moving in positive Y direction, adjust points at back side
-            #             new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2]]
-            #             changed = True
-            #         elif speed_vector[1] < -speed_accuracy and i in self.front_indexes and not changed:
-            #             # Moving in negative Y direction, adjust points at front side
-            #             new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2]]
-            #             changed = True
+                    if speed_vector[1] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive Y direction, adjust points at back side
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2]]
+                        changed = True
+                    elif speed_vector[1] < -speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative Y direction, adjust points at front side
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1], point[2]]
+                        changed = True
                     
-            #         if speed_vector[2] > speed_accuracy and i in self.top_indexes and not changed:
-            #             # Moving in positive Z direction, adjust points at top side
-            #             new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed = True
-            #         elif speed_vector[2] < -speed_accuracy and i in self.bottom_indexes and not changed:
-            #             # Moving in negative Z direction, adjust points at bottom side
-            #             new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
-            #             changed = True
+                    if speed_vector[2] > speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in positive Z direction, adjust points at top side
+                        new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed = True
+                    elif speed_vector[2] < -speed_accuracy and i in points_in_direction and not changed:
+                        # Moving in negative Z direction, adjust points at bottom side
+                        new_point = [point[0], point[1], point[2] + speed_vector[2] * scale_factor]
+                        changed = True
 
                         
             if not changed:
