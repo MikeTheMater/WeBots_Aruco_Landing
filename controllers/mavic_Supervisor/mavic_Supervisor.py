@@ -115,7 +115,7 @@ class SuperMavic(Supervisor):
 
         # Calculate the normals of the points
         normals = Trying_the_normal.calculate_point_normals(self.points, self.triangles, center)
-        threshold=0.6
+        threshold=0.2
         points_in_direction, points_opposite_direction = Trying_the_normal.classify_points_by_normal(normals, speed_vector, threshold)
 
 
