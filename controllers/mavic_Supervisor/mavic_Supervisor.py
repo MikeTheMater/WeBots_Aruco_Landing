@@ -69,6 +69,8 @@ class SuperMavic(Supervisor):
         self.emitter = self.mavic.getEmitter
         self.receiver = self.mavic.getReceiver
         
+        self.collision_Status= self.mavic.getField("customData").getSFString()
+        
         self.nameDef = nameDef
 
     def calculateSpeed(self):
@@ -522,8 +524,10 @@ class SuperMavic(Supervisor):
             collision = self.findCollision(box1, other_triangles)
             if collision:
                 print(f"Possible collision detected between {self.nameDef} and {other_drone_name}.")
+                self.mavic.getField("customData").setSFString("1")
             else:
                 print(f"No collision detected between {self.nameDef} and {other_drone_name}.")
+                self.mavic.getField("customData").setSFString("0")
 
     def findPointsFromMessage(self, points_list):
         points = [list(points_list[i:i+3]) for i in range(0, len(points_list), 3)]

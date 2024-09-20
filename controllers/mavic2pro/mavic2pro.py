@@ -97,79 +97,7 @@ class Mavic(Robot):
         )
 
         return yaw_disturbance, pitch_disturbance
-    
         
-    # def calculateSpaceOfBox(self):
-    #     position = self.gps.getValues()
-    #     # Calculate the 8 different points of the bounding box
-    #     points = []
-    #     relative_position = self.calculate_translation_rel_to_world(self.new_translation)
-    #     rounding_factor = 3
-    #     for i in range(2):
-    #         for j in range(2):
-    #             for k in range(2):
-    #                 x = relative_position[0] + (-1) ** i * self.new_size[0] / 2
-    #                 y = relative_position[1] + (-1) ** j * self.new_size[1] / 2
-    #                 z = relative_position[2] + (-1) ** k * self.new_size[2] / 2
-    #                 points.append((round(x, rounding_factor), round(y, rounding_factor), round(z, rounding_factor)))
-
-    #     # Rearrange the points in the required order for the Box class
-    #     box_vertices = [
-    #         points[0],
-    #         points[1],
-    #         points[3],
-    #         points[2],
-    #         points[4],
-    #         points[5],
-    #         points[7],
-    #         points[6]
-    #     ]
-    #     return box_vertices
-
-    # def findPointsFromMessage(self, message):
-        
-    #     # Extracting the string representation of the box vertices
-    #     start_index = message.find("[")
-    #     end_index = message.rfind("]") + 1  # Add 1 to include the closing bracket
-    #     box_vertices_str = message[start_index:end_index]
-    #     vertices_list = box_vertices_str.split(",")
-    #     vertices_list = [coord.strip("()") for coord in vertices_list]
-    #     vertices_list = [coord.replace("(", "") for coord in vertices_list]
-    #     vertices_list = [coord.replace(")", "") for coord in vertices_list]
-    #     vertices_list = [coord.replace("[", "") for coord in vertices_list]
-    #     vertices_list = [coord.replace("]", "") for coord in vertices_list]
-    #     vertices_list = [coord.replace(" ", "") for coord in vertices_list]
-    #     vertices_list = [coord.split(",") for coord in vertices_list]
-    #     vertices_list = [[float(coord) for coord in vertex] for vertex in vertices_list]
-    #     vertices_list = [vertex for sublist in vertices_list for vertex in sublist]
-    #     # Combine the vertices into triples
-    #     points = [tuple(vertices_list[i:i+3]) for i in range(0, len(vertices_list), 3)]
-
-    #     #print(points)
-    #     return points
-    
-    # def com_between_drones(self):
-    #     self.change_bbox()
-    #     message="bbox of "+str()
-    #     self.emitter.send(message)
-    #     # Example: Receive a message on the receiver
-    #     if self.receiver.getQueueLength() > 0:
-    #         received_message = self.receiver.getString()
-    #         #print("Received message:" , received_message)
-    #         self.receiver.nextPacket()  # Move to the next received packet
-
-    #         box1=self.calculateSpaceOfBox()                
-
-            
-    #         box2 = self.findPointsFromMessage(received_message)
-            
-    #         collision = self.findCollision(box1, box2)
-    #         if collision:
-    #             print("Collision detected with the other drone.")
-    #             # Handle collision logic here
-    #         else:
-    #             print("No collision detected with the other drone.")
-            
     def calculate_translation_rel_to_world(self, translation):
         return [translation[0] + self.gps.getValues()[0], translation[1] + self.gps.getValues()[1], translation[2] + self.gps.getValues()[2]]
     
@@ -372,6 +300,11 @@ class Mavic(Robot):
 
         detected_marker = False
         while self.step(self.time_step) != -1:
+            collistion_Status = self.getCustomData()
+            if collistion_Status == "1":   
+                # If collision detected
+                print("Collision detected from controller")
+                break
             #self.com_between_drones()
             # Read sensors and set position.
             roll, pitch, yaw = self.imu.getRollPitchYaw()
