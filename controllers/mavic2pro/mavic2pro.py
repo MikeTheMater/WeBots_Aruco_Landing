@@ -284,7 +284,48 @@ class Mavic(Robot):
                 angle_left, distance_left))
         return yaw_disturbance, pitch_disturbance
     
-    
+    def move_right_by_motor_control(self, speed_difference, target_altitude=5):
+        # Constants (adjust as needed)
+        k_roll_p = self.K_ROLL_P
+        k_pitch_p = self.K_PITCH_P
+        k_vertical_p = self.K_VERTICAL_P
+        k_vertical_thrust = self.K_VERTICAL_THRUST
+        k_vertical_offset = self.K_VERTICAL_OFFSET
+
+        # Base motor speed (this can be adjusted)
+        base_speed = 1.0
+
+        # Get current sensor values
+        roll = self.imu.getRollPitchYaw()[0]  # Assuming roll is the first value
+        pitch = self.imu.getRollPitchYaw()[1]  # Assuming pitch is the second value
+        altitude = self.gps.getValues()[2]
+        roll_velocity = self.gyro.getValues()[0]
+        pitch_velocity = self.gyro.getValues()[1]
+        pitch_disturbance = 0
+        yaw_disturbance = 0
+        roll_disturbance = -1
+        # Compute roll, pitch, yaw, and vertical inputs
+        roll_input = k_roll_p * clamp(roll, -1.0, 1.0) + roll_velocity + roll_disturbance
+        pitch_input = k_pitch_p * clamp(pitch, -1.0, 1.0) + pitch_velocity + pitch_disturbance
+        yaw_input = speed_difference  # Use speed_difference to create the right turn
+
+        clamped_difference_altitude = clamp(target_altitude - altitude + k_vertical_offset, -1.0, 1.0)
+        vertical_input = k_vertical_p * pow(clamped_difference_altitude, 3.0)
+
+        # Actuate the motors considering all the computed inputs
+        front_left_motor_input = (k_vertical_thrust + vertical_input - roll_input + pitch_input - yaw_input)
+        front_right_motor_input = (k_vertical_thrust + vertical_input + roll_input + pitch_input + yaw_input)
+        rear_left_motor_input = (k_vertical_thrust + vertical_input - roll_input - pitch_input + yaw_input)
+        rear_right_motor_input = (k_vertical_thrust + vertical_input + roll_input - pitch_input - yaw_input)
+
+        # Set the motor velocities
+        self.front_left_motor.setVelocity(front_left_motor_input)
+        self.front_right_motor.setVelocity(-front_right_motor_input)
+        self.rear_left_motor.setVelocity(-rear_left_motor_input)
+        self.rear_right_motor.setVelocity(rear_right_motor_input)
+
+
+        
     def run(self):
         t1 = self.getTime()
 
@@ -293,18 +334,14 @@ class Mavic(Robot):
         yaw_disturbance = 0
 
         # Specify the patrol coordinates
-        waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
+        #waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
         #waypoints = [[-6.36,3.2]]
         # target altitude of the robot in meters
         self.target_altitude = 5
 
         detected_marker = False
         while self.step(self.time_step) != -1:
-            collistion_Status = self.getCustomData()
-            if collistion_Status == "1":   
-                # If collision detected
-                print("Collision detected from controller")
-                break
+            
             #self.com_between_drones()
             # Read sensors and set position.
             roll, pitch, yaw = self.imu.getRollPitchYaw()
@@ -312,6 +349,17 @@ class Mavic(Robot):
             roll_acceleration, pitch_acceleration, _ = self.gyro.getValues()
             self.set_position([x_pos, y_pos, altitude, roll, pitch, yaw])
 
+            collistion_Status = self.getCustomData()
+            if collistion_Status != "0":   
+                # If collision detected
+                print("Collision detected from controller")
+                
+                temp_collistion_Status = [float(i) for i in collistion_Status.split(" ")]
+                
+                self.move_right_by_motor_control(0.5)
+                self.set_position([temp_collistion_Status[0:2]])
+                continue
+            
             if not self.marker_detected:
                 if altitude > self.target_altitude - 1:
                     current_time = self.getTime()
