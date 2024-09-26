@@ -20,10 +20,10 @@ WorldInfo {
   }
 }
 Viewpoint {
-  orientation 0.5283662789009612 0.5345326299933325 -0.6596240920348213 1.9647569648271304
-  position -0.2081456661207102 -0.544529429984535 4.770232750279597
+  orientation 0.5866380685803625 0.5759371049232848 -0.5693436815008026 2.122272300177966
+  position -0.15741437602503128 -1.0223290616017464 27.877380144505914
   near 0.2
-  follow "Mavic 2 PRO"
+  follow "manhole"
   followSmoothness 0.2
 }
 TexturedBackground {
@@ -38,7 +38,7 @@ Floor {
   }
 }
 Solid {
-  translation 13.9337 0.253063 0.001
+  translation -0.0954082 6.22178 0.001
   children [
     Shape {
       appearance PBRAppearance {
@@ -105,7 +105,7 @@ SquareManhole {
   translation 0 0 -0.03
 }
 DEF Mavic_2_PRO_1 Robot {
-  translation -0.0562353 -0.869229 0.065
+  translation 0.118112 2.76241 0.065
   rotation -0.03484430743229331 0.03484210743182405 -0.9987852130409586 1.57198
   children [
     DEF BODY_SLOT Group {
@@ -2740,7 +2740,7 @@ DEF Mavic_2_PRO_2 Robot {
   supervisor TRUE
 }
 Solid {
-  translation -12.5819 2.37675 0.001
+  translation 0.0234968 -7.1256 0.001
   children [
     Shape {
       appearance PBRAppearance {

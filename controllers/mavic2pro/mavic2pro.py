@@ -356,56 +356,56 @@ class Mavic(Robot):
                 
                 temp_collistion_Status = [float(i) for i in collistion_Status.split(" ")]
                 
-                self.move_right_by_motor_control(0.5)
+                self.move_right_by_motor_control(0.1)
                 self.set_position([temp_collistion_Status[0:2]])
                 continue
-            
-            if not self.marker_detected:
-                if altitude > self.target_altitude - 1:
-                    current_time = self.getTime()
-                    self.update_sinusoidal_waypoints(current_time)
-                    yaw_disturbance, pitch_disturbance = self.compute_movement()
-                else:
-                    yaw_disturbance = 0
-                    pitch_disturbance = 0
             else:
-                # Move towards the marker position and land
-                self.target_position[0:2] = self.marker_position
-                yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
-                if abs(self.current_pose[0] - self.marker_position[0]) < 0.5 and abs(self.current_pose[1] - self.marker_position[1]) < 0.5:
-                    print("Landing on the marker.")
-                    #print("Marker position: ", self.marker_position)
-                    #print("Current position: ", self.current_pose[0:2])
-                    self.land(altitude)
-                    break
+                if not self.marker_detected:
+                    if altitude > self.target_altitude - 1:
+                        current_time = self.getTime()
+                        self.update_sinusoidal_waypoints(current_time)
+                        yaw_disturbance, pitch_disturbance = self.compute_movement()
+                    else:
+                        yaw_disturbance = 0
+                        pitch_disturbance = 0
+                else:
+                    # Move towards the marker position and land
+                    self.target_position[0:2] = self.marker_position
+                    yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
+                    if abs(self.current_pose[0] - self.marker_position[0]) < 0.5 and abs(self.current_pose[1] - self.marker_position[1]) < 0.5:
+                        print("Landing on the marker.")
+                        #print("Marker position: ", self.marker_position)
+                        #print("Current position: ", self.current_pose[0:2])
+                        self.land(altitude)
+                        break
 
-            # Detect marker and switch to marker mode if found.
-            if not self.marker_detected and self.detect_aruco_marker():
-                print("Marker detected, switching to marker mode.")
-                print("Marker position: ", self.marker_position)
-                self.marker_detected = True
+                # Detect marker and switch to marker mode if found.
+                if not self.marker_detected and self.detect_aruco_marker():
+                    print("Marker detected, switching to marker mode.")
+                    print("Marker position: ", self.marker_position)
+                    self.marker_detected = True
 
-            # Movement logic using 'yaw_disturbance', 'pitch_disturbance', etc.
-            roll_input = self.K_ROLL_P * clamp(roll, -1, 1) + roll_acceleration + yaw_disturbance
-            pitch_input = self.K_PITCH_P * clamp(pitch, -1, 1) + pitch_acceleration + pitch_disturbance
-            yaw_input = yaw_disturbance
-            clamped_difference_altitude = clamp(self.target_altitude - altitude + self.K_VERTICAL_OFFSET, -1, 1)
-            vertical_input = self.K_VERTICAL_P * pow(clamped_difference_altitude, 3.0)
+                # Movement logic using 'yaw_disturbance', 'pitch_disturbance', etc.
+                roll_input = self.K_ROLL_P * clamp(roll, -1, 1) + roll_acceleration + yaw_disturbance
+                pitch_input = self.K_PITCH_P * clamp(pitch, -1, 1) + pitch_acceleration + pitch_disturbance
+                yaw_input = yaw_disturbance
+                clamped_difference_altitude = clamp(self.target_altitude - altitude + self.K_VERTICAL_OFFSET, -1, 1)
+                vertical_input = self.K_VERTICAL_P * pow(clamped_difference_altitude, 3.0)
 
-            front_left_motor_input = self.K_VERTICAL_THRUST + vertical_input - yaw_input + pitch_input - roll_input
-            front_right_motor_input = self.K_VERTICAL_THRUST + vertical_input + yaw_input + pitch_input + roll_input
-            rear_left_motor_input = self.K_VERTICAL_THRUST + vertical_input + yaw_input - pitch_input - roll_input
-            rear_right_motor_input = self.K_VERTICAL_THRUST + vertical_input - yaw_input - pitch_input + roll_input
+                front_left_motor_input = self.K_VERTICAL_THRUST + vertical_input - yaw_input + pitch_input - roll_input
+                front_right_motor_input = self.K_VERTICAL_THRUST + vertical_input + yaw_input + pitch_input + roll_input
+                rear_left_motor_input = self.K_VERTICAL_THRUST + vertical_input + yaw_input - pitch_input - roll_input
+                rear_right_motor_input = self.K_VERTICAL_THRUST + vertical_input - yaw_input - pitch_input + roll_input
 
-            if math.isnan(front_left_motor_input) or math.isnan(front_right_motor_input) or math.isnan(rear_left_motor_input) or math.isnan(rear_right_motor_input):
-                print("NaN value detected. Changing them to 0.")
-                for motor in self.motors:
-                    motor.setVelocity(0.0)
-                #break
-            self.front_left_motor.setVelocity(front_left_motor_input)
-            self.front_right_motor.setVelocity(-front_right_motor_input)
-            self.rear_left_motor.setVelocity(-rear_left_motor_input)
-            self.rear_right_motor.setVelocity(rear_right_motor_input)
+                if math.isnan(front_left_motor_input) or math.isnan(front_right_motor_input) or math.isnan(rear_left_motor_input) or math.isnan(rear_right_motor_input):
+                    print("NaN value detected. Changing them to 0.")
+                    for motor in self.motors:
+                        motor.setVelocity(0.0)
+                    #break
+                self.front_left_motor.setVelocity(front_left_motor_input)
+                self.front_right_motor.setVelocity(-front_right_motor_input)
+                self.rear_left_motor.setVelocity(-rear_left_motor_input)
+                self.rear_right_motor.setVelocity(rear_right_motor_input)
             
 # Main execution
 #robot = Mavic()
