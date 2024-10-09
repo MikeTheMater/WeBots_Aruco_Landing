@@ -6,7 +6,7 @@ import math
 import os
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
-import box_intersection
+import time
 
 def clamp(value, value_min, value_max):
     return min(max(value, value_min), value_max)
@@ -74,8 +74,15 @@ class Mavic(Robot):
     def update_sinusoidal_waypoints(self, current_time):
         x = current_time * self.sinusoidal_path_frequency
         y = self.sinusoidal_path_amplitude * np.sin(x)
-        self.target_position[0:2] = [x, y]
+        self.target_position = [x, y]
 
+    def update_linear_waypoints(self, waypoints):
+        if all([abs(x1 - x2) < self.target_precision for (x1, x2) in zip(self.target_position[0:2], self.current_pose[0:2])]):
+            self.target_index += 1
+            if self.target_index > len(waypoints) - 1:
+                self.target_index = 0
+        self.target_position[0:2] = waypoints[self.target_index]
+    
     def compute_movement(self):
         # Calculate the yaw and pitch disturbances to navigate towards the target position.
         target_yaw = np.arctan2(
@@ -100,31 +107,6 @@ class Mavic(Robot):
         
     def calculate_translation_rel_to_world(self, translation):
         return [translation[0] + self.gps.getValues()[0], translation[1] + self.gps.getValues()[1], translation[2] + self.gps.getValues()[2]]
-    
-    def calculate_speed(self):
-        time_step = int(self.getBasicTimeStep())
-        while self.step(time_step) != -1:
-            
-            # Get the current position of the drone
-            position1 = np.array([self.gps.getValues()[0], self.gps.getValues()[1], self.gps.getValues()[2]])
-
-            # Wait for 1 second
-            self.step(500)
-
-            # Get the new position of the drone
-            position2 = np.array([self.gps.getValues()[0], self.gps.getValues()[1], self.gps.getValues()[2]])
-
-            # Calculate the difference in position
-            position_difference = position2 - position1
-
-            # Calculate the speed in each dimension
-            speed = position_difference / 0.5  # Time difference is 1 second
-
-            # Print the speed in each dimension (in meters per second)
-            #print("Speed in x direction:", speed[0])
-            #print("Speed in y direction:", speed[1])
-            #print("Speed in z direction:", speed[2])
-            return speed
     
     def detect_aruco_marker(self):
         image = self.camera.getImage()
@@ -181,8 +163,8 @@ class Mavic(Robot):
 
     def land(self,starting_altitude):
         # Gradual descent parameters
-        descent_rate = 0.01  # Meters per time step, adjust as needed
-        touchdown_altitude = 0.2  # Altitude at which to cut off motors, adjust as needed
+        descent_rate = 0.01  # Meters per time step
+        touchdown_altitude = 0.2  # Altitude at which to cut off motors
 
         starting_altitude=int(starting_altitude)
         while self.step(self.time_step) != -1:
@@ -232,8 +214,9 @@ class Mavic(Robot):
         self.camera.disable()
         print("Landing completed.")
         self.landed=True
+        self.setCustomData("landed")
 
-    def move_to_target(self, waypoints, verbose_movement=False, verbose_target=False):
+    def move_to_target(self, waypoints, verbose_movement=False, verbose_target=True):
         """
         Move the robot to the given coordinates
         Parameters:
@@ -247,8 +230,11 @@ class Mavic(Robot):
 
         if self.target_position[0:2] == [0, 0]:  # Initialization
             self.target_position[0:2] = waypoints[0]
+            self.target_altitude = self.random_altitude[self.alt_counter]
+            self.alt_counter+=1
             if verbose_target:
                 print("First target: ", self.target_position[0:2])
+                print("Target altitude: ", self.target_altitude)
 
         # if the robot is at the position with a precision of target_precision
         if all([abs(x1 - x2) < self.target_precision for (x1, x2) in zip(self.target_position, self.current_pose[0:2])]):
@@ -292,18 +278,15 @@ class Mavic(Robot):
         k_vertical_thrust = self.K_VERTICAL_THRUST
         k_vertical_offset = self.K_VERTICAL_OFFSET
 
-        # Base motor speed (this can be adjusted)
-        base_speed = 1.0
-
         # Get current sensor values
-        roll = self.imu.getRollPitchYaw()[0]  # Assuming roll is the first value
-        pitch = self.imu.getRollPitchYaw()[1]  # Assuming pitch is the second value
+        roll = self.imu.getRollPitchYaw()[0]
+        pitch = self.imu.getRollPitchYaw()[1]
         altitude = self.gps.getValues()[2]
         roll_velocity = self.gyro.getValues()[0]
         pitch_velocity = self.gyro.getValues()[1]
         pitch_disturbance = 0
         yaw_disturbance = 0
-        roll_disturbance = -1
+        roll_disturbance = -1.0
         # Compute roll, pitch, yaw, and vertical inputs
         roll_input = k_roll_p * clamp(roll, -1.0, 1.0) + roll_velocity + roll_disturbance
         pitch_input = k_pitch_p * clamp(pitch, -1.0, 1.0) + pitch_velocity + pitch_disturbance
@@ -335,10 +318,16 @@ class Mavic(Robot):
 
         # Specify the patrol coordinates
         #waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
-        #waypoints = [[-6.36,3.2]]
+        waypoints = [np.random.randint(-2, 2, 2).tolist() for _ in range(10)]
         # target altitude of the robot in meters
-        self.target_altitude = 5
+        self.random_altitude=[round(np.random.uniform(2, 4), 1) for _ in range(10)]
+        self.alt_counter=0
+        self.target_altitude = self.random_altitude[self.alt_counter]
+        #self.target_altitude = 5
+        alt_count=0
 
+        start=time.time()
+        last_time = 0
         detected_marker = False
         while self.step(self.time_step) != -1:
             
@@ -352,18 +341,32 @@ class Mavic(Robot):
             collistion_Status = self.getCustomData()
             if collistion_Status != "0":   
                 # If collision detected
-                print("Collision detected from controller")
+                #print("Collision detected from controller")
                 
                 temp_collistion_Status = [float(i) for i in collistion_Status.split(" ")]
-                
-                self.move_right_by_motor_control(0.1)
+                while abs(temp_collistion_Status[0] - self.current_pose[0]) < 0.1 and abs(temp_collistion_Status[1] - self.current_pose[1]) < 0.1 and abs(temp_collistion_Status[2] - self.current_pose[2]) < 0.1:
+                    roll_disturbance = -1.0
+                    #self.move_right_by_motor_control(0.1)
                 self.set_position([temp_collistion_Status[0:2]])
                 continue
             else:
+                roll_disturbance = 0.0
                 if not self.marker_detected:
                     if altitude > self.target_altitude - 1:
                         current_time = self.getTime()
-                        self.update_sinusoidal_waypoints(current_time)
+                        #elf.update_sinusoidal_waypoints(current_time)
+                        #print("Current time: ", current_time)                        
+                        
+                        if int(current_time) % 2 == 0 and alt_count < 10 and int(current_time) != last_time:
+                            # print("Current time: ", current_time)
+                            # print("Current altitude: ", altitude)
+                            # print("Target altitude: ", self.target_altitude)
+                            self.target_altitude = self.random_altitude[alt_count]
+                            self.target_position[0:2] = waypoints[alt_count]
+                            alt_count+=1
+                            last_time = int(current_time)
+                        #yaw_disturbance,pitch_disturbance = self.move_to_target(waypoints)
+                        #self.update_linear_waypoints(waypoints)
                         yaw_disturbance, pitch_disturbance = self.compute_movement()
                     else:
                         yaw_disturbance = 0
@@ -386,7 +389,7 @@ class Mavic(Robot):
                     self.marker_detected = True
 
                 # Movement logic using 'yaw_disturbance', 'pitch_disturbance', etc.
-                roll_input = self.K_ROLL_P * clamp(roll, -1, 1) + roll_acceleration + yaw_disturbance
+                roll_input = self.K_ROLL_P * clamp(roll, -1, 1) + roll_acceleration + roll_disturbance
                 pitch_input = self.K_PITCH_P * clamp(pitch, -1, 1) + pitch_acceleration + pitch_disturbance
                 yaw_input = yaw_disturbance
                 clamped_difference_altitude = clamp(self.target_altitude - altitude + self.K_VERTICAL_OFFSET, -1, 1)

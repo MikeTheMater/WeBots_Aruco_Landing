@@ -1,84 +1,79 @@
 import numpy as np
 
-def triangles_intersect(triangle1, triangle2, tolerance=1e-6):
-    """Check if two triangles intersect with a given tolerance.
+class Triangle:
+    def __init__(self, a, b, c):
+        self.a = np.array(a)
+        self.b = np.array(b)
+        self.c = np.array(c)
 
-    Args:
-        triangle1: np.array of shape (3, 3), representing the first triangle's vertices.
-        triangle2: np.array of shape (3, 3), representing the second triangle's vertices.
-        tolerance: float, the tolerance for floating-point comparisons.
+class Interval:
+    def __init__(self, min_val, max_val):
+        self.min = min_val
+        self.max = max_val
 
-    Returns:
-        bool: True if the triangles intersect, False otherwise.
-    """
-    v1, v2, v3 = triangle1
-    w1, w2, w3 = triangle2
+def cross(v1, v2):
+    return np.cross(v1, v2)
 
-    # Compute the normal vectors of the triangles
-    n1 = np.cross(v2 - v1, v3 - v1)
-    n2 = np.cross(w2 - w1, w3 - w1)
+def dot(v1, v2):
+    return np.dot(v1, v2)
 
-    # Check if the triangles are parallel
-    if np.allclose(np.dot(n1, n2), 0, atol=tolerance):
-        return False
+def get_interval(triangle, axis):
+    """Get the projection of the triangle on the axis and return the interval."""
+    proj1 = dot(triangle.a, axis)
+    proj2 = dot(triangle.b, axis)
+    proj3 = dot(triangle.c, axis)
+    
+    min_proj = min(proj1, proj2, proj3)
+    max_proj = max(proj1, proj2, proj3)
+    
+    return Interval(min_proj, max_proj)
 
-    # Compute the distances from the origin to the triangles
-    d1 = -np.dot(n1, v1)
-    d2 = -np.dot(n2, w1)
+def overlap_on_axis(t1, t2, axis):
+    """Check if the projections of the two triangles on the given axis overlap."""
+    interval_a = get_interval(t1, axis)
+    interval_b = get_interval(t2, axis)
+    return (interval_b.min <= interval_a.max) and (interval_a.min <= interval_b.max)
 
-    # Check if the triangles are on the same side of each other
-    if (np.dot(n1, w1) + d1 < -tolerance and np.dot(n1, w2) + d1 < -tolerance and np.dot(n1, w3) + d1 < -tolerance) or \
-       (np.dot(n2, v1) + d2 < -tolerance and np.dot(n2, v2) + d2 < -tolerance and np.dot(n2, v3) + d2 < -tolerance):
-        return False
+def triangle_triangle(t1, t2):
+    """Check if two triangles intersect using the separating axis theorem."""
+    # Step 4: Compute the edges of triangle 1
+    t1_f0 = t1.b - t1.a  # Edge 0 of triangle 1
+    t1_f1 = t1.c - t1.b  # Edge 1 of triangle 1
+    t1_f2 = t1.a - t1.c  # Edge 2 of triangle 1
 
-    # Check for intersection along the edges of the triangles
-    for (a, b) in [(v1, v2), (v2, v3), (v3, v1)]:
-        for (c, d) in [(w1, w2), (w2, w3), (w3, w1)]:
-            if edges_intersect(a, b, c, d, tolerance):
+    # Step 5: Compute the edges of triangle 2
+    t2_f0 = t2.b - t2.a  # Edge 0 of triangle 2
+    t2_f1 = t2.c - t2.b  # Edge 1 of triangle 2
+    t2_f2 = t2.a - t2.c  # Edge 2 of triangle 2
+
+    # Step 6: Build an array of potentially separating axes
+    axis_to_test = [
+        # Step 7: Normal of triangle 1
+        cross(t1_f0, t1_f1),
+        # Step 8: Normal of triangle 2
+        cross(t2_f0, t2_f1),
+        # Step 9: Cross products of edges of triangle 1 and triangle 2
+        cross(t2_f0, t1_f0), cross(t2_f0, t1_f1), cross(t2_f0, t1_f2),
+        cross(t2_f1, t1_f0), cross(t2_f1, t1_f1), cross(t2_f1, t1_f2),
+        cross(t2_f2, t1_f0), cross(t2_f2, t1_f1), cross(t2_f2, t1_f2),
+    ]
+
+    # Step 10: Check for overlap on each axis
+    for axis in axis_to_test:
+        if np.linalg.norm(axis) < 1e-8:  # Skip degenerate axes
+            continue
+        if not overlap_on_axis(t1, t2, axis):
+            return False  # Separating axis found, triangles do not intersect
+    
+    # Step 11: If no separating axis found, triangles intersect
+    return True
+
+# Function to check if two boxes intersect
+def boxes_intersect(box1, box2):
+    for triangle1_vertices in box1:
+        triangle1 = Triangle(triangle1_vertices[0], triangle1_vertices[1], triangle1_vertices[2])
+        for triangle2_vertices in box2:
+            triangle2 = Triangle(triangle2_vertices[0], triangle2_vertices[1], triangle2_vertices[2])
+            if triangle_triangle(triangle1, triangle2):
                 return True
-
     return False
-
-def edges_intersect(a, b, c, d, tolerance=1e-6):
-    """Check if two edges (a, b) and (c, d) intersect with a given tolerance.
-
-    Args:
-        a, b: np.array of shape (3,), representing the first edge's endpoints.
-        c, d: np.array of shape (3,), representing the second edge's endpoints.
-        tolerance: float, the tolerance for floating-point comparisons.
-
-    Returns:
-        bool: True if the edges intersect, False otherwise.
-    """
-    def ccw(p, q, r):
-        return (r[1] - p[1]) * (q[0] - p[0]) > (q[1] - p[1]) * (r[0] - p[0])
-
-    if ccw(a, c, d) != ccw(b, c, d) and ccw(a, b, c) != ccw(a, b, d):
-        return True
-
-    return False
-
-
-def is_point_in_triangle(pt, tri):
-    """Check if a point is inside a triangle.
-
-    Args:
-        pt: np.array of shape (3,), the point to check.
-        tri: np.array of shape (3, 3), the triangle vertices.
-
-    Returns:
-        bool: True if the point is inside the triangle, False otherwise.
-    """
-    v2 = pt - tri[0]
-    v0 = tri[1] - tri[0]
-    v1 = tri[2] - tri[0]
-    dot00 = np.dot(v0, v0)
-    dot01 = np.dot(v0, v1)
-    dot02 = np.dot(v0, v2)
-    dot11 = np.dot(v1, v1)
-    dot12 = np.dot(v1, v2)
-
-    invDenom = 1 / (dot00 * dot11 - dot01 * dot01)
-    u = (dot11 * dot02 - dot01 * dot12) * invDenom
-    v = (dot00 * dot12 - dot01 * dot02) * invDenom
-    return (u >= 0) and (v >= 0) and (u + v < 1)
