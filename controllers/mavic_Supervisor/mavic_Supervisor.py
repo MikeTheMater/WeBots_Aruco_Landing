@@ -116,8 +116,10 @@ class SuperMavic(Supervisor):
         
         center=np.mean(self.points, axis=0)
 
+        transformed_points = self.transform_points(self.points, self.orientation)
+        
         # Calculate the normals of the points
-        normals = Trying_the_normal.calculate_point_normals(self.points, self.triangles, center)
+        normals = Trying_the_normal.calculate_point_normals(transformed_points, self.triangles, center)
         threshold=0.2
         self.points_in_direction, self.points_opposite_direction = Trying_the_normal.classify_points_by_normal(normals, speed_vector, threshold)
 
@@ -194,18 +196,22 @@ class SuperMavic(Supervisor):
                     if i in self.points_in_direction and not changed:
                         new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
                         changed=True
+                        self.direction = 0
                 if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] < - math.sqrt(2)/2 :
                     if i in self.points_in_direction and not changed:
-                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1] - speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
                         changed=True
+                        self.direction = 1
                 if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] < - math.sqrt(2)/2 :
                     if i in self.points_in_direction and not changed:
                         new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
                         changed=True
+                        self.direction = 2
                 if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] > math.sqrt(2)/2 :
                     if i in self.points_in_direction and not changed:
-                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
                         changed=True
+                        self.direction = 3
             
             # if self.position[2]> 0.1:
             #     #Fixed the positive and negative x axises, positive and negative y axis
@@ -556,46 +562,37 @@ class SuperMavic(Supervisor):
                 self.mavic.getField("customData").setSFString("0")
 
     def turn_right(self, distance):
-        if self.direction == 0 or self.direction == 1:
-            # Get the current orientation and position of the drone
-            orientation = self.mavic.getOrientation()
-            
-            # The right direction is along the X-axis in local coordinates
-            right_vector = [orientation[0], orientation[3], orientation[6]]
-            
-            # Normalize the right_vector to ensure unit direction
-            right_vector = right_vector / np.linalg.norm(right_vector)
-            
-            # Move the drone 1 meter to the right
+        if self.direction == 0:
+           # Move the drone 1 meter to the right
             new_position = [
-                self.mavic.getPosition()[0] + right_vector[0] * distance,
-                self.mavic.getPosition()[1] + right_vector[1] * distance,
-                self.mavic.getPosition()[2] + right_vector[2] * distance
+                self.mavic.getPosition()[0],
+                self.mavic.getPosition()[1] - distance,
+                self.mavic.getPosition()[2]
+            ]
+        elif self.direction == 1:
+            new_position = [
+                self.mavic.getPosition()[0],
+                self.mavic.getPosition()[1] + distance,
+                self.mavic.getPosition()[2]
             ]
             
-            # Set the new position (you may need to define a method to set position in your drone)
-            #self.mavic.getField("translation").setSFVec3f(new_position)
-       
-        elif self.direction == 2 or self.direction == 3:
-            # Get the current orientation and position of the drone
-            orientation = self.mavic.getOrientation()
-            
-            # The right direction is along the X-axis in local coordinates
-            right_vector = [orientation[1], orientation[4], orientation[7]]
-            
-            # Normalize the right_vector to ensure unit direction
-            right_vector = right_vector / np.linalg.norm(right_vector)
-            
+        elif self.direction == 2:
             # Move the drone 1 meter to the right
             new_position = [
-                self.mavic.getPosition()[0] + right_vector[0] * distance,
-                self.mavic.getPosition()[1] + right_vector[1] * distance,
-                self.mavic.getPosition()[2] + right_vector[2] * distance
+                self.mavic.getPosition()[0] - distance,
+                self.mavic.getPosition()[1],
+                self.mavic.getPosition()[2]
             ]
-            
-            # Set the new position (you may need to define a method to set position in your drone)
-            #self.mavic.getField("translation").setSFVec3f(new_position)
-            
+        elif self.direction == 3:
+            # Move the drone 1 meter to the right
+            new_position = [
+                self.mavic.getPosition()[0] + distance,
+                self.mavic.getPosition()[1],
+                self.mavic.getPosition()[2]
+            ]
+    
+        # Set the new position (you may need to define a method to set position in your drone)
+        #self.mavic.getField("translation").setSFVec3f(new_position)
         return new_position
     
     def findPointsFromMessage(self, points_list):
