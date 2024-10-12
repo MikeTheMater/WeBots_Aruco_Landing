@@ -344,10 +344,10 @@ class Mavic(Robot):
                 #print("Collision detected from controller")
                 
                 temp_collistion_Status = [float(i) for i in collistion_Status.split(" ")]
-                while abs(temp_collistion_Status[0] - self.current_pose[0]) < 0.1 and abs(temp_collistion_Status[1] - self.current_pose[1]) < 0.1 and abs(temp_collistion_Status[2] - self.current_pose[2]) < 0.1:
-                    roll_disturbance = -1.0
-                    #self.move_right_by_motor_control(0.1)
+                self.target_altitude = temp_collistion_Status[2]
+                self.move_right_by_motor_control(0.1)
                 self.set_position([temp_collistion_Status[0:2]])
+                
                 continue
             else:
                 roll_disturbance = 0.0
@@ -409,8 +409,3 @@ class Mavic(Robot):
                 self.front_right_motor.setVelocity(-front_right_motor_input)
                 self.rear_left_motor.setVelocity(-rear_left_motor_input)
                 self.rear_right_motor.setVelocity(rear_right_motor_input)
-            
-# Main execution
-#robot = Mavic()
-#robot.set_id(0)
-#robot.run()
