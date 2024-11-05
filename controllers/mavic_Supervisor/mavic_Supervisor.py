@@ -10,6 +10,7 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
 import box_intersection
 import Trying_the_normal
+import time
 
 class SuperMavic(Supervisor):
     def __init__(self, nameDef):
@@ -61,6 +62,7 @@ class SuperMavic(Supervisor):
         #print ("Triangles", self.triangles)
         # Store data from other drones
         self.other_drones_data = []
+        self.other_drones_data_dict = {}
         
         self.isNAN = False
         #print("Initial points:", self.points)
@@ -145,11 +147,14 @@ class SuperMavic(Supervisor):
             #print("Point ", i, ":", points[i])
             #print("self.point", i, ":", self.points[i])
 
-    def send_data(self):
+    def send_data(self, triangles, triangles_unchanged):
         position = self.mavic.getPosition()
-        triangles = self.get_triangles() 
+        
         points_list = [vertex.tolist() for triangle in triangles for vertex in triangle]  # Convert to list of lists
-        message = json.dumps({"name": self.nameDef, "position": position, "points": points_list})  # Serialize to JSON
+        
+       
+        points_list_unchanged = [vertex.tolist() for triangle in triangles_unchanged for vertex in triangle]  # Convert to list of lists
+        message = json.dumps({"name": self.nameDef, "position": position, "changed_points": points_list, "points": points_list_unchanged})  # Serialize to JSON
         self.emitter.send(message.encode())  # Send as byte data
 
     def receive_data(self):
@@ -157,11 +162,17 @@ class SuperMavic(Supervisor):
         while self.receiver.getQueueLength() > 0:
             received_message = self.receiver.getString()  # Get the message as a string
             data = json.loads(received_message)  # Deserialize JSON
+            self.other_drones_position = data["position"]
             other_drone_name = data["name"]
-            self.box2 = self.findPointsFromMessage(data["points"])  # Extract points
-            self.other_drones_data.append((other_drone_name, self.box2))
+            self.box2 = self.findPointsFromMessage(data["changed_points"])  # Extract points
+            
+            self.box2_unchanged = self.findPointsFromMessage(data["points"])  # Extract points of the bounding box without the addition of the speed vector
+            self.other_drones_data.append((other_drone_name, self.box2, self.box2_unchanged))
+            
             self.receiver.nextPacket()
-
+            count=0
+            
+            #print(f"{other_drone_name}'s data dict:\n {self.other_drones_data_dict}\n")
             # Print points for both drones
             #print(f"Drone {self.nameDef} has these points: {self.points}")
             #print(f"Drone {other_drone_name} has these points: {self.box2}")
@@ -176,18 +187,80 @@ class SuperMavic(Supervisor):
         return [self.rotate_point(point, orientation_matrix) for point in points]
 
     def check_collisions(self):
-        self.box1 = self.get_triangles()
-        for other_drone_name, other_triangles in self.other_drones_data:
-            collision = self.findCollision(self.box1, other_triangles)
-            if collision:
+        possible_collision = []
+        higher=0
+        lower=0
+        drone=0
+        for other_drone_name, other_triangles, other_unchanged_triangles in self.other_drones_data:
+                
+            possible_collision.append(self.findCollision(self.box1, other_triangles))
+            
+            if possible_collision[drone]:
                 print(f"Possible collision detected between {self.nameDef} and {other_drone_name}.")
-                new_position = self.turn_right(1)
-                self.mavic.getField("customData").setSFString(f"{new_position[0]} {new_position[1]} {new_position[2]}")
-            else:
+                self.collision_detected_count += 1
+           
                 #print(f"No collision detected between {self.nameDef} and {other_drone_name}.")
                 #print(f"box of {self.nameDef}", self.box1)
-                self.mavic.getField("customData").setSFString("0")
+                if self.mavic.getPosition()[2] > self.other_drones_position[2]:
+                    lower-=1
+                elif self.mavic.getPosition()[2] < self.other_drones_position[2]:
+                    lower+=1
+                elif int(self.nameDef[-1]) < int(other_drone_name[-1]):
+                    lower+=1
+                else:
+                    lower-=1
+                
+            collision = self.findCollision(self.box1_unchanged, other_unchanged_triangles)
+            if collision:
+                print(f"Collision happened between {self.nameDef} and {other_drone_name}.")
+                self.collision_count += 1
+                
+            drone+=1
+        
+        if any(possible_collision):
+            new_position = self.turn_right(1)
+            self.mavic.getField("customData").setSFString(f"{new_position[0]} {new_position[1]} {new_position[2] - 0.5 * lower}")
+        else:
+            self.mavic.getField("customData").setSFString("0")
 
+
+    def handle_possible_collision(self):
+        drone_number = int(self.nameDef[-1])
+        other_drone_number = int(self.other_drones_data[0][0][-1])
+        
+        drone_altitude = self.mavic.getPosition()[2]
+        other_drone_altitude = self.other_drones_position[2]
+        
+        if drone_altitude < other_drone_altitude:
+            new_position = [
+                self.mavic.getPosition()[0],
+                self.mavic.getPosition()[1],
+                self.mavic.getPosition()[2] - 0.5
+            ]
+        elif drone_altitude > other_drone_altitude:
+            new_position = [
+                self.mavic.getPosition()[0],
+                self.mavic.getPosition()[1],
+                self.mavic.getPosition()[2] + 0.5
+            ]
+        elif drone_number < other_drone_number:
+            new_position = [
+                self.mavic.getPosition()[0],
+                self.mavic.getPosition()[1],
+                self.mavic.getPosition()[2] - 0.5
+            ]
+        elif drone_number > other_drone_number:
+            new_position = [
+                self.mavic.getPosition()[0],
+                self.mavic.getPosition()[1],
+                self.mavic.getPosition()[2] + 0.5
+            ]
+        return new_position
+    
+    def find_min_and_max_z_of_points(self, points):
+        z_values = [point[2][2] for point in points]
+        return min(z_values), max(z_values)
+    
     def turn_right(self, distance):
         if self.direction == 0:
            # Move the drone 1 meter to the right
@@ -226,12 +299,12 @@ class SuperMavic(Supervisor):
         points = [list(points_list[i:i+3]) for i in range(0, len(points_list), 3)]
         return points
 
-    def get_triangles(self):
+    def get_triangles(self, points):# Create an array that contains the coordinates of he points of the triangles in sets of 3
         # Get the current position of the drone
         position = self.mavic.getPosition()
         
-        transformed_points = self.transform_points(self.scaled_points, self.orientation)
-        # Convert self.triangles indices to actual coordinates from self.points
+        transformed_points = self.transform_points(points, self.orientation)
+        # Convert self.triangles indices to actual coordinates from points given
         triangles_coords = []
         for triangle in self.triangles:
             triangle_coords = np.array([transformed_points[idx] for idx in triangle])
@@ -242,24 +315,48 @@ class SuperMavic(Supervisor):
     def findCollision(self, box1, box2, tolerance=1e-6):
         return box_intersection.boxes_intersect(box1, box2)
         
-        
     def run(self):
-        time_step=500
-        while self.step(time_step) != -1:
+        time_step=300
+        self.collision_count = 0
+        self.collision_detected_count = 0
+        
+        with open(f"{self.nameDef}_timing_with_timestep_{time_step}.txt", "w") as file:
+            file.write("Timing log for each step:\n")
+        
+        while self.step(self.time_step) != -1:
+
+            start = time.time()
+            if self.getTime() > 5:
+                
+                self.change_bbox()
+                
+                self.box1 = self.get_triangles(self.scaled_points)
+                self.box1_unchanged = self.get_triangles(self.points)
+                
+                self.send_data(self.box1, self.box1_unchanged)
+                self.receive_data()
+                
+                
+                self.check_collisions()
+                    
+                self.simulationResetPhysics()
+                end = time.time()
             
-            self.change_bbox()
-            self.send_data()
-            self.receive_data()
-            self.check_collisions()
-            self.simulationResetPhysics()
+                with open(f"{self.nameDef}_collision_count_with_timestep_{time_step}.txt", "w") as file:
+                    file.write(f"Collision count:{self.collision_count}\n")
+                    file.write(f"Possible collision detected count:{self.collision_detected_count}")
             
-            if self.isNAN:
-                break
-            
-            self.collision_Status= self.mavic.getField("customData").getSFString()
-            if self.collision_Status=="landed":
-                print("Landed")
-                break
-            
+                self.step(time_step)
+                with open(f"{self.nameDef}_timing_with_timestep_{time_step}.txt", "a") as file:
+                    file.write(f"{end-start}\n")
+                    
+                if self.isNAN:
+                    break
+                
+                self.collision_Status= self.mavic.getField("customData").getSFString()
+                if self.collision_Status=="landed":
+                    print("Landed")
+                    break
+        
         print("Exiting...")
         sys.exit(0)

@@ -270,7 +270,7 @@ class Mavic(Robot):
                 angle_left, distance_left))
         return yaw_disturbance, pitch_disturbance
     
-    def move_right_by_motor_control(self, speed_difference, target_altitude=5):
+    def move_right_by_motor_control(self, speed_difference, target_altitude):
         # Constants (adjust as needed)
         k_roll_p = self.K_ROLL_P
         k_pitch_p = self.K_PITCH_P
@@ -318,9 +318,9 @@ class Mavic(Robot):
 
         # Specify the patrol coordinates
         #waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
-        waypoints = [np.random.randint(-2, 2, 2).tolist() for _ in range(10)]
+        waypoints = [np.random.randint(-2, 2, 2).tolist() for _ in range(50)]
         # target altitude of the robot in meters
-        self.random_altitude=[round(np.random.uniform(2, 4), 1) for _ in range(10)]
+        self.random_altitude=[round(np.random.uniform(2, 4), 1) for _ in range(50)]
         self.alt_counter=0
         self.target_altitude = self.random_altitude[self.alt_counter]
         #self.target_altitude = 5
@@ -344,8 +344,9 @@ class Mavic(Robot):
                 #print("Collision detected from controller")
                 
                 temp_collistion_Status = [float(i) for i in collistion_Status.split(" ")]
+                #print("Collision detected from controller: ", temp_collistion_Status)
                 self.target_altitude = temp_collistion_Status[2]
-                self.move_right_by_motor_control(0.1)
+                self.move_right_by_motor_control(0.2, temp_collistion_Status[2])
                 self.set_position([temp_collistion_Status[0:2]])
                 
                 continue
@@ -355,9 +356,8 @@ class Mavic(Robot):
                     if altitude > self.target_altitude - 1:
                         current_time = self.getTime()
                         #elf.update_sinusoidal_waypoints(current_time)
-                        #print("Current time: ", current_time)                        
-                        
-                        if int(current_time) % 2 == 0 and alt_count < 10 and int(current_time) != last_time:
+                        #print("Current time: ", current_time)
+                        if int(current_time) % 2 == 0 and alt_count < 50 and int(current_time) != last_time:
                             # print("Current time: ", current_time)
                             # print("Current altitude: ", altitude)
                             # print("Target altitude: ", self.target_altitude)
@@ -365,6 +365,8 @@ class Mavic(Robot):
                             self.target_position[0:2] = waypoints[alt_count]
                             alt_count+=1
                             last_time = int(current_time)
+                        else:
+                            self.update_sinusoidal_waypoints(current_time)
                         #yaw_disturbance,pitch_disturbance = self.move_to_target(waypoints)
                         #self.update_linear_waypoints(waypoints)
                         yaw_disturbance, pitch_disturbance = self.compute_movement()
