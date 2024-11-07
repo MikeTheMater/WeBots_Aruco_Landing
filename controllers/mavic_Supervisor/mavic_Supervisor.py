@@ -188,8 +188,8 @@ class SuperMavic(Supervisor):
 
     def check_collisions(self):
         possible_collision = []
-        higher=0
-        lower=0
+        
+        change_alt=0
         drone=0
         for other_drone_name, other_triangles, other_unchanged_triangles in self.other_drones_data:
                 
@@ -201,14 +201,18 @@ class SuperMavic(Supervisor):
            
                 #print(f"No collision detected between {self.nameDef} and {other_drone_name}.")
                 #print(f"box of {self.nameDef}", self.box1)
-                if self.mavic.getPosition()[2] > self.other_drones_position[2]:
-                    lower-=1
-                elif self.mavic.getPosition()[2] < self.other_drones_position[2]:
-                    lower+=1
+                if float(self.mavic.getPosition()[2]) - float(self.other_drones_position[2]) > 0.1:
+                    print(f"Drone {self.nameDef} is higher ({self.mavic.getPosition()[2]}, type {type(self.mavic.getPosition()[2])}) than drone {other_drone_name} ({self.other_drones_position[2]}).")
+                    change_alt += 0.5
+                elif float(self.other_drones_position[2]) - float(self.mavic.getPosition()[2]) > 0.1:
+                    print(f"Drone {self.nameDef} is lower ({self.mavic.getPosition()[2]}) than drone {other_drone_name} ({self.other_drones_position[2]}).")
+                    change_alt -= 0.5
+                elif int(self.nameDef[-1]) > int(other_drone_name[-1]):
+                    print(f"Drone {self.nameDef} has higher number than drone {other_drone_name}.")
+                    change_alt += 0.5
                 elif int(self.nameDef[-1]) < int(other_drone_name[-1]):
-                    lower+=1
-                else:
-                    lower-=1
+                    print(f"Drone {self.nameDef} has lowen number than drone {other_drone_name}.")
+                    change_alt -= 0.5
                 
             collision = self.findCollision(self.box1_unchanged, other_unchanged_triangles)
             if collision:
@@ -219,7 +223,7 @@ class SuperMavic(Supervisor):
         
         if any(possible_collision):
             new_position = self.turn_right(1)
-            self.mavic.getField("customData").setSFString(f"{new_position[0]} {new_position[1]} {new_position[2] - 0.5 * lower}")
+            self.mavic.getField("customData").setSFString(f"{new_position[0]} {new_position[1]} {new_position[2] + change_alt}")
         else:
             self.mavic.getField("customData").setSFString("0")
 
