@@ -196,22 +196,22 @@ class SuperMavic(Supervisor):
             possible_collision.append(self.findCollision(self.box1, other_triangles))
             
             if possible_collision[drone]:
-                print(f"Possible collision detected between {self.nameDef} and {other_drone_name}.")
+                #print(f"Possible collision detected between {self.nameDef} and {other_drone_name}.")
                 self.collision_detected_count += 1
            
                 #print(f"No collision detected between {self.nameDef} and {other_drone_name}.")
                 #print(f"box of {self.nameDef}", self.box1)
                 if float(self.mavic.getPosition()[2]) - float(self.other_drones_position[2]) > 0.1:
-                    print(f"Drone {self.nameDef} is higher ({self.mavic.getPosition()[2]}, type {type(self.mavic.getPosition()[2])}) than drone {other_drone_name} ({self.other_drones_position[2]}).")
+                    #print(f"Drone {self.nameDef} is higher ({self.mavic.getPosition()[2]}, type {type(self.mavic.getPosition()[2])}) than drone {other_drone_name} ({self.other_drones_position[2]}).")
                     change_alt += 0.5
                 elif float(self.other_drones_position[2]) - float(self.mavic.getPosition()[2]) > 0.1:
-                    print(f"Drone {self.nameDef} is lower ({self.mavic.getPosition()[2]}) than drone {other_drone_name} ({self.other_drones_position[2]}).")
+                    #print(f"Drone {self.nameDef} is lower ({self.mavic.getPosition()[2]}) than drone {other_drone_name} ({self.other_drones_position[2]}).")
                     change_alt -= 0.5
                 elif int(self.nameDef[-1]) > int(other_drone_name[-1]):
-                    print(f"Drone {self.nameDef} has higher number than drone {other_drone_name}.")
+                    #print(f"Drone {self.nameDef} has higher number than drone {other_drone_name}.")
                     change_alt += 0.5
                 elif int(self.nameDef[-1]) < int(other_drone_name[-1]):
-                    print(f"Drone {self.nameDef} has lowen number than drone {other_drone_name}.")
+                    #print(f"Drone {self.nameDef} has lowen number than drone {other_drone_name}.")
                     change_alt -= 0.5
                 
             collision = self.findCollision(self.box1_unchanged, other_unchanged_triangles)
@@ -320,7 +320,7 @@ class SuperMavic(Supervisor):
         return box_intersection.boxes_intersect(box1, box2)
         
     def run(self):
-        time_step=300
+        time_step=500
         self.collision_count = 0
         self.collision_detected_count = 0
         
