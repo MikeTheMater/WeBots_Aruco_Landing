@@ -84,7 +84,7 @@ class SuperMavic(Supervisor):
         self.z_orientation = [self.orientation[2], self.orientation[5], self.orientation[8]]
         self.position = self.mavic.getPosition()
         # Normalize the speed vector
-        speed_vector = speed_vector / np.linalg.norm(speed_vector) /2
+        speed_vector = speed_vector #/ np.linalg.norm(speed_vector)
         
         center=np.mean(self.points, axis=0)
 
@@ -101,7 +101,7 @@ class SuperMavic(Supervisor):
             point = self.points[i]
 
             speed_accuracy = 0.15 # speed accuracy to consider the drone is moving in a direction
-            scale_factor = 1 # scale factor to move the points based on the speed vector
+            #self.scale_factor = 0.25 # scale factor to move the points based on the speed vector
             #print(self.nameDef + " orientation ", self.orientation)   
             changed = False
             self.direction=0 #0 for x axis, 1 for -x axis, 2 for y axis, 3 for -y axis
@@ -109,29 +109,29 @@ class SuperMavic(Supervisor):
             if self.position[2]> 0.1:
                 if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] > math.sqrt(2)/2 :
                     if i in self.points_in_direction and not changed:
-                        new_point = [point[0] + speed_vector[0] * scale_factor, point[1] + speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        new_point = [point[0] + speed_vector[0] * self.scale_factor, point[1] + speed_vector[1] * self.scale_factor, point[2] + speed_vector[2] * self.scale_factor]
                         changed=True
                         self.direction = 0
                 if self.y_orientation[0] > - math.sqrt(2)/2 and  self.y_orientation[0] < math.sqrt(2)/2 and self.x_orientation[0] < - math.sqrt(2)/2 :
                     if i in self.points_in_direction and not changed:
-                        new_point = [point[0] - speed_vector[0] * scale_factor, point[1] - speed_vector[1] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        new_point = [point[0] - speed_vector[0] * self.scale_factor, point[1] - speed_vector[1] * self.scale_factor, point[2] + speed_vector[2] * self.scale_factor]
                         changed=True
                         self.direction = 1
                 if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] < - math.sqrt(2)/2 :
                     if i in self.points_in_direction and not changed:
-                        new_point = [point[0] + speed_vector[1] * scale_factor, point[1] - speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        new_point = [point[0] + speed_vector[1] * self.scale_factor, point[1] - speed_vector[0] * self.scale_factor, point[2] + speed_vector[2] * self.scale_factor]
                         changed=True
                         self.direction = 2
                 if self.x_orientation[0] > - math.sqrt(2)/2 and  self.x_orientation[0] < math.sqrt(2)/2 and self.y_orientation[0] > math.sqrt(2)/2 :
                     if i in self.points_in_direction and not changed:
-                        new_point = [point[0] - speed_vector[1] * scale_factor, point[1] + speed_vector[0] * scale_factor, point[2] + speed_vector[2] * scale_factor]
+                        new_point = [point[0] - speed_vector[1] * self.scale_factor, point[1] + speed_vector[0] * self.scale_factor, point[2] + speed_vector[2] * self.scale_factor]
                         changed=True
                         self.direction = 3
             
             if not changed:
                 new_point = self.points[i][:]  
 
-            #new_speed_point = [new_point[j] + (abs(speed_vector[j]) if j!=2 else speed_vector[j]) * scale_factor for j in range(3)]
+            #new_speed_point = [new_point[j] + (abs(speed_vector[j]) if j!=2 else speed_vector[j]) * self.scale_factor for j in range(3)]
 
             # Append the scaled point to the list
             self.scaled_points.append(new_point)
@@ -188,8 +188,9 @@ class SuperMavic(Supervisor):
 
     def check_collisions(self):
         possible_collision = []
-        
+        collision = False
         change_alt=0
+       # change_alt_collision=0
         drone=0
         for other_drone_name, other_triangles, other_unchanged_triangles in self.other_drones_data:
                 
@@ -213,15 +214,30 @@ class SuperMavic(Supervisor):
                 elif int(self.nameDef[-1]) < int(other_drone_name[-1]):
                     #print(f"Drone {self.nameDef} has lowen number than drone {other_drone_name}.")
                     change_alt -= 0.5
-                
-            collision = self.findCollision(self.box1_unchanged, other_unchanged_triangles)
-            if collision:
-                print(f"Collision happened between {self.nameDef} and {other_drone_name}.")
-                self.collision_count += 1
+            
+            #I check for collision only if there is a possible collision to avoid unnecessary calculations and and improve time performance
+            if possible_collision[drone]:
+                collision = self.findCollision(self.box1_unchanged, other_unchanged_triangles)
+                if collision:
+                    print(f"Collision happened between {self.nameDef} and {other_drone_name}.")
+                    self.collision_count += 1
+                    # if float(self.mavic.getPosition()[2]) - float(self.other_drones_position[2]) > 0.1:
+                    #     print(f"Drone {self.nameDef} is higher ({self.mavic.getPosition()[2]} than drone {other_drone_name} ({self.other_drones_position[2]}).")
+                    #     change_alt_collision += 0.5
+                    # elif float(self.other_drones_position[2]) - float(self.mavic.getPosition()[2]) > 0.1:
+                    #     print(f"Drone {self.nameDef} is lower ({self.mavic.getPosition()[2]}) than drone {other_drone_name} ({self.other_drones_position[2]}).")
+                    #     change_alt_collision -= 0.5
+                    # elif int(self.nameDef[-1]) > int(other_drone_name[-1]):
+                    #     print(f"Drone {self.nameDef} has higher number than drone {other_drone_name}.")
+                    #     change_alt_collision += 0.5
+                    # elif int(self.nameDef[-1]) < int(other_drone_name[-1]):
+                    #     print(f"Drone {self.nameDef} has lower number than drone {other_drone_name}.")
+                    #     change_alt_collision -= 0.5
+                    # change_alt = change_alt_collision
                 
             drone+=1
         
-        if any(possible_collision):
+        if any(possible_collision) or collision:
             new_position = self.turn_right(1)
             self.mavic.getField("customData").setSFString(f"{new_position[0]} {new_position[1]} {new_position[2] + change_alt}")
         else:
@@ -320,11 +336,13 @@ class SuperMavic(Supervisor):
         return box_intersection.boxes_intersect(box1, box2)
         
     def run(self):
-        time_step=500
+        No_of_drones = 8
+        time_step=300 #50, 100, 300, 500, 1000
+        self.scale_factor = 1 #0.125, 0.25, 0.5, 1 but also have to change the normalization
         self.collision_count = 0
         self.collision_detected_count = 0
         
-        with open(f"{self.nameDef}_timing_with_timestep_{time_step}.txt", "w") as file:
+        with open(f"{self.nameDef}_timing_with_timestep_{time_step}_and_normal_{self.scale_factor}_No_of_drones_{No_of_drones}.txt", "w") as file:
             file.write("Timing log for each step:\n")
         
         while self.step(self.time_step) != -1:
@@ -346,12 +364,12 @@ class SuperMavic(Supervisor):
                 self.simulationResetPhysics()
                 end = time.time()
             
-                with open(f"{self.nameDef}_collision_count_with_timestep_{time_step}.txt", "w") as file:
+                with open(f"{self.nameDef}_collision_count_with_timestep_{time_step}_and_normal_{self.scale_factor}_No_of_drones_{No_of_drones}.txt", "w") as file:
                     file.write(f"Collision count:{self.collision_count}\n")
                     file.write(f"Possible collision detected count:{self.collision_detected_count}")
             
                 self.step(time_step)
-                with open(f"{self.nameDef}_timing_with_timestep_{time_step}.txt", "a") as file:
+                with open(f"{self.nameDef}_timing_with_timestep_{time_step}_and_normal_{self.scale_factor}_No_of_drones_{No_of_drones}.txt", "a") as file:
                     file.write(f"{end-start}\n")
                     
                 if self.isNAN:
