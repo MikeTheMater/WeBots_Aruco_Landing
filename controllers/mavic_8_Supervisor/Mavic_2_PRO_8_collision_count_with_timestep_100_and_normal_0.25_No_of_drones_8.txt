@@ -1,0 +1,2 @@
+Collision count:93
+Possible collision detected count:184

@@ -84,7 +84,7 @@ class SuperMavic(Supervisor):
         self.z_orientation = [self.orientation[2], self.orientation[5], self.orientation[8]]
         self.position = self.mavic.getPosition()
         # Normalize the speed vector
-        speed_vector = speed_vector #/ np.linalg.norm(speed_vector)
+        speed_vector = speed_vector / np.linalg.norm(speed_vector)
         
         center=np.mean(self.points, axis=0)
 
@@ -337,8 +337,8 @@ class SuperMavic(Supervisor):
         
     def run(self):
         No_of_drones = 8
-        time_step=300 #50, 100, 300, 500, 1000
-        self.scale_factor = 1 #0.125, 0.25, 0.5, 1 but also have to change the normalization
+        time_step=100 #50, 100, 300, 500, 1000
+        self.scale_factor = 0.50 #0.125, 0.25, 0.5, 1 but also have to change the normalization
         self.collision_count = 0
         self.collision_detected_count = 0
         
