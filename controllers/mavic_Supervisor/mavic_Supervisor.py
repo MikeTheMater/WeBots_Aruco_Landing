@@ -336,8 +336,8 @@ class SuperMavic(Supervisor):
         return box_intersection.boxes_intersect(box1, box2)
         
     def run(self):
-        No_of_drones = 4
-        time_step= 1000 #50, 100, 250, 500, 1000
+        No_of_drones = 2
+        time_step= 100 #50, 100, 250, 500, 1000
         self.scale_factor = 0.125 #0.125, 0.25, 0.5, 1 but also have to change the normalization
         self.collision_count = 0
         self.collision_detected_count = 0
