@@ -12,4 +12,10 @@ textFiles: -1
 globalOptionalRendering: AllBoundingObjects
 consoles: Console:All:All
 renderingDevicePerspectives: Mavic 2 PRO(1):camera;0;1;0.41313;0.438312
+renderingDevicePerspectives: Mavic 2 PRO(2):camera;0;1;0;0
+renderingDevicePerspectives: Mavic 2 PRO(3):camera;0;1;0;0
+renderingDevicePerspectives: Mavic 2 PRO(4):camera;0;1;0;0
+renderingDevicePerspectives: Mavic 2 PRO(5):camera;0;1;0;0
+renderingDevicePerspectives: Mavic 2 PRO(6):camera;0;1;0;0
+renderingDevicePerspectives: Mavic 2 PRO(7):camera;0;1;0;0
 renderingDevicePerspectives: Mavic 2 PRO:camera;0;0.789639;0.468374;0.717532
