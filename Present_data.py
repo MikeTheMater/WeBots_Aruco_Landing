@@ -16,7 +16,7 @@ def read_collision_data(timestep, normal, num_drones=8):
     mean_pos_col_count = 0
 
     for x in range(1, num_drones + 1):
-        filename = f"controllers/mavic_{x}_Supervisor/Mavic_2_PRO_{x}_collision_count_with_timestep_{timestep}_and_normal_{normal}.txt"
+        filename = f"controllers/mavic_{x}_Supervisor/Mavic_2_PRO_{x}_collision_count_with_timestep_{timestep}_and_normal_{normal}_No_of_drones_{num_drones}.txt"
         if os.path.exists(filename):
             with open(filename, 'r') as file:
                 col_count = int(file.readline().strip().split(":")[-1])
@@ -31,16 +31,23 @@ def read_collision_data(timestep, normal, num_drones=8):
     mean_pos_col_count /= count
     return col_counts, pos_col_counts, mean_col_count, mean_pos_col_count
 
-# === Read Timing Data ===
 def read_timing_data(timestep, normal, num_drones=8):
     timing_values = {}
     for x in range(1, num_drones + 1):
-        filename = f"controllers/mavic_{x}_Supervisor/Mavic_2_PRO_{x}_timing_with_timestep_{timestep}_and_normal_{normal}.txt"
+        filename = f"controllers/mavic_{x}_Supervisor/Mavic_2_PRO_{x}_timing_with_timestep_{timestep}_and_normal_{normal}_No_of_drones_{num_drones}.txt"
         if os.path.exists(filename):
             with open(filename, 'r') as file:
-                lines = file.readlines()
-                timing_values[x] = [float(value.strip()) for value in lines[2:]]
+                lines = file.readlines()[2:]  # Skip the first 2 lines: header + bad value
+                values = []
+                for line in lines:
+                    try:
+                        values.append(float(line.strip()))
+                    except ValueError:
+                        continue
+                if values:
+                    timing_values[x] = values
     return timing_values
+
 
 # === Plot Collisions ===
 def plot_collisions(col_counts, pos_col_counts, mean_col_count, mean_pos_col_count, timestep, normal, save=False):
@@ -81,30 +88,36 @@ def plot_collisions(col_counts, pos_col_counts, mean_col_count, mean_pos_col_cou
     else:
         plt.show()
 
-# === Plot Timing per Step ===
 def plot_timing(timing_values, timestep, normal, save=False):
+
     folder = ensure_plot_dir(timestep, normal)
     num_drones = len(timing_values)
     rows = (num_drones + 3) // 4
     fig, axes = plt.subplots(rows, 4, figsize=(14, rows * 3), sharex=True)
     axes = axes.flatten()
-    max_x = max((len(values) for values in timing_values.values()), default=10)
-    y_min, y_max = 9, 12
+
+    # Gather global deviation range
+    all_devs = []
+    for values in timing_values.values():
+        mean_val = np.mean(values)
+        all_devs.extend([v - mean_val for v in values])
+    y_min = min(values) - 0.05
+    y_max = max(values) + 0.05
 
     for i, (x, values) in enumerate(timing_values.items()):
         ax = axes[i]
-        ax.plot(values, marker='o', markersize=3, linewidth=1, label=f"Drone {x}")
         mean_value = np.mean(values)
-        ax.axhline(mean_value, color='red', linestyle='--', linewidth=1, label=f"Μ.Ο.: {mean_value:.2f}")
-        ax.text(len(values) * 0.98, mean_value + 0.05, f"{mean_value:.2f}", color='red', fontsize=9, ha='right')
+        
+        ax.plot(values, marker='o', markersize=1.5, linewidth=0.5, label=f"Drone {x}")
+        ax.axhline(mean_val, color='red', linestyle='--', linewidth=1, label="Μ.Ο.: {:.2f}".format(mean_value))
         ax.set_title(f"Drone {x} Timing", fontsize=10)
         ax.set_xlabel("Measurement Index", fontsize=9)
-        ax.set_ylabel("Χρόνος (s)", fontsize=9)
+        ax.set_ylabel("Απόκλιση Χρόνου (s)", fontsize=9)
         ax.tick_params(axis='both', labelsize=8)
         ax.legend(fontsize=7)
         ax.grid(True, linestyle='--', alpha=0.6)
-        ax.set_xlim(0, max_x)
-        ax.set_ylim(y_min, y_max)
+        ax.set_xlim(0, len(values))
+        ax.set_ylim(0, y_max)
 
     for j in range(len(timing_values), len(axes)):
         fig.delaxes(axes[j])
@@ -115,8 +128,9 @@ def plot_timing(timing_values, timestep, normal, save=False):
     else:
         plt.show()
 
-# === Plot Histogram of Timing ===
 def plot_timing_histograms(timing_values, timestep, normal, save=False):
+    
+
     folder = ensure_plot_dir(timestep, normal)
     num_drones = len(timing_values)
     rows = (num_drones + 3) // 4
@@ -125,16 +139,16 @@ def plot_timing_histograms(timing_values, timestep, normal, save=False):
 
     for i, (x, values) in enumerate(timing_values.items()):
         ax = axes[i]
-        ax.hist(values, bins=15, color='skyblue', edgecolor='black', alpha=0.7)
         mean_val = np.mean(values)
-        ax.axvline(mean_val, color='red', linestyle='--', label=f"Μ.Ο.: {mean_val:.2f}")
+        deviations = [v - mean_val for v in values]
+        ax.hist(values, bins=20, color='skyblue', edgecolor='black', alpha=0.7)
+        ax.axvline(0, color='red', linestyle='--', label=f"Μ.Ο.: 0.00")
         ax.set_title(f"Drone {x} Histogram", fontsize=10)
-        ax.set_xlabel("Χρόνος (s)", fontsize=9)
+        ax.set_xlabel("Απόκλιση Χρόνου (s)", fontsize=9)
         ax.set_ylabel("Συχνότητα", fontsize=9)
         ax.tick_params(axis='both', labelsize=8)
         ax.legend(fontsize=7)
         ax.grid(True, linestyle='--', alpha=0.6)
-        ax.set_xlim(9, 12)
 
     for j in range(len(timing_values), len(axes)):
         fig.delaxes(axes[j])
@@ -144,6 +158,7 @@ def plot_timing_histograms(timing_values, timestep, normal, save=False):
         plt.savefig(f"{folder}/timing_histogram.png", dpi=300)
     else:
         plt.show()
+
 
 # === Main Function ===
 def main(timesteps, normals, save_plots=True, num_drones=8):
