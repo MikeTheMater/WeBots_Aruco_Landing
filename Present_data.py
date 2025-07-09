@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # === Ensure plot directory exists ===
-def ensure_plot_dir(timestep, normal):
-    folder = f"Data_plots/Plots_timestep_{timestep}_normal_{normal}"
+def ensure_plot_dir(timestep, normal, num_drones=4):
+    folder = f"Data_plots/{num_drones}_Drones/Plots_timestep_{timestep}_normal_{normal}"
     os.makedirs(folder, exist_ok=True)
     return folder
 
 # === Read Collision and Possible Collision Counts ===
-def read_collision_data(timestep, normal, num_drones=8):
+def read_collision_data(timestep, normal, num_drones=4):
     col_counts = {}
     pos_col_counts = {}
     mean_col_count = 0
@@ -31,7 +31,7 @@ def read_collision_data(timestep, normal, num_drones=8):
     mean_pos_col_count /= count
     return col_counts, pos_col_counts, mean_col_count, mean_pos_col_count
 
-def read_timing_data(timestep, normal, num_drones=8):
+def read_timing_data(timestep, normal, num_drones=4):
     timing_values = {}
     for x in range(1, num_drones + 1):
         filename = f"controllers/mavic_{x}_Supervisor/Mavic_2_PRO_{x}_timing_with_timestep_{timestep}_and_normal_{normal}_No_of_drones_{num_drones}.txt"
@@ -51,7 +51,7 @@ def read_timing_data(timestep, normal, num_drones=8):
 
 # === Plot Collisions ===
 def plot_collisions(col_counts, pos_col_counts, mean_col_count, mean_pos_col_count, timestep, normal, save=False):
-    folder = ensure_plot_dir(timestep, normal)
+    folder = ensure_plot_dir(timestep, normal, num_drones=4)
     x_labels = [f"Drone {k}" for k in col_counts.keys()]
     col_count_values = list(col_counts.values())
     pos_col_count_values = list(pos_col_counts.values())
@@ -88,9 +88,9 @@ def plot_collisions(col_counts, pos_col_counts, mean_col_count, mean_pos_col_cou
     else:
         plt.show()
 
-def plot_timing(timing_values, timestep, normal, save=False):
+def plot_timing(timing_values, timestep, normal, save=False, num_drones=4):
 
-    folder = ensure_plot_dir(timestep, normal)
+    folder = ensure_plot_dir(timestep, normal, num_drones=4)
     num_drones = len(timing_values)
     rows = (num_drones + 3) // 4
     fig, axes = plt.subplots(rows, 4, figsize=(14, rows * 3), sharex=True)
@@ -128,40 +128,9 @@ def plot_timing(timing_values, timestep, normal, save=False):
     else:
         plt.show()
 
-def plot_timing_histograms(timing_values, timestep, normal, save=False):
-    
-
-    folder = ensure_plot_dir(timestep, normal)
-    num_drones = len(timing_values)
-    rows = (num_drones + 3) // 4
-    fig, axes = plt.subplots(rows, 4, figsize=(14, rows * 3), sharex=True)
-    axes = axes.flatten()
-
-    for i, (x, values) in enumerate(timing_values.items()):
-        ax = axes[i]
-        mean_val = np.mean(values)
-        deviations = [v - mean_val for v in values]
-        ax.hist(values, bins=20, color='skyblue', edgecolor='black', alpha=0.7)
-        ax.axvline(0, color='red', linestyle='--', label=f"Μ.Ο.: 0.00")
-        ax.set_title(f"Drone {x} Histogram", fontsize=10)
-        ax.set_xlabel("Απόκλιση Χρόνου (s)", fontsize=9)
-        ax.set_ylabel("Συχνότητα", fontsize=9)
-        ax.tick_params(axis='both', labelsize=8)
-        ax.legend(fontsize=7)
-        ax.grid(True, linestyle='--', alpha=0.6)
-
-    for j in range(len(timing_values), len(axes)):
-        fig.delaxes(axes[j])
-
-    plt.tight_layout()
-    if save:
-        plt.savefig(f"{folder}/timing_histogram.png", dpi=300)
-    else:
-        plt.show()
-
 
 # === Main Function ===
-def main(timesteps, normals, save_plots=True, num_drones=8):
+def main(timesteps, normals, save_plots=True, num_drones=4):
     for timestep in timesteps:
         for normal in normals:
             print(f"\n--- Processing Timestep={timestep}, Normal={normal} ---")
@@ -174,10 +143,10 @@ def main(timesteps, normals, save_plots=True, num_drones=8):
 
             plot_collisions(col_counts, pos_col_counts, mean_col_count, mean_pos_col_count, timestep, normal, save=save_plots)
             plot_timing(timing_values, timestep, normal, save=save_plots)
-            plot_timing_histograms(timing_values, timestep, normal, save=save_plots)
+            
 
 # === Run Program ===
 if __name__ == "__main__":
     timesteps = [50, 100, 250, 500, 1000]               # Customize as needed
     normals = [0.125, 0.25, 0.5, 1]           # Customize as needed
-    main(timesteps=timesteps, normals=normals, save_plots=True, num_drones=8)
+    main(timesteps=timesteps, normals=normals, save_plots=True, num_drones=4)  # Change num_drones as needed
