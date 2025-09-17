@@ -15,12 +15,12 @@ class Mavic(Robot):
     # Constants, empirically found.
     K_VERTICAL_THRUST = 68.5  # with this thrust, the drone lifts.
     K_VERTICAL_OFFSET = 0.6   # Vertical offset where the robot actually targets to stabilize itself.
-    K_VERTICAL_P = 3.0        # P constant of the vertical PID.
-    K_ROLL_P = 50.0           # P constant of the roll PID.
-    K_PITCH_P = 30.0          # P constant of the pitch PID.
-    MAX_YAW_DISTURBANCE = 0.4
-    MAX_PITCH_DISTURBANCE = -1
-    target_precision = 0.05    # Precision between the target position and the robot position in meters
+    K_VERTICAL_P = 2.3        # P constant of the vertical PID.
+    K_ROLL_P = 60.0           # P constant of the roll PID.
+    K_PITCH_P = 45.0          # P constant of the pitch PID.
+    MAX_YAW_DISTURBANCE = 0.8
+    MAX_PITCH_DISTURBANCE = -3.0
+    target_precision = 0.15    # Precision between the target position and the robot position in meters
 
     def __init__(self):
         Robot.__init__(self)
@@ -38,6 +38,26 @@ class Mavic(Robot):
         self.marker_position = [0, 0]
         self.target_index = 0
         self.landed = False
+        
+        self.avoiding = False
+        self.avoid_goal_xy = [0.0, 0.0]
+        self.avoid_goal_alt = None
+       
+        self.avoid_reach_eps = 0.4  # m, how close before we clear avoidance
+        
+        # --- altitude/vertical control ---
+        self.K_VERTICAL_D = 3.0        # derivative gain on vertical speed (tune 2.0–5.0)
+        self.alt_index = 2             # assume Z-up first; we auto-switch if wrong
+        self._alt_prev = None          # last altitude sample
+        self.alt_slew_rate = 0.08      # faster slew so changes are visible during avoidance
+
+        # --- avoidance instrumentation (no spam) ---
+        self._avoid_id = 0
+        self._avoid_started_t = 0.0
+        self._alt_at_avoid_start = None
+        self._other_alt_start = None
+
+
 
     def init_devices(self):
         self.camera = self.getDevice("camera")
@@ -53,6 +73,13 @@ class Mavic(Robot):
         self.emitter = self.getDevice("emitter")
         self.receiver = self.getDevice("receiver")
         self.receiver.enable(self.time_step)
+        
+        self.max_fwd_cmd_cruise = 1.0   # how “fast” forward (disturbance units)
+        self.max_fwd_cmd_avoid  = 0.25  # slow creep during avoidance
+        self.pitch_cmd_rate     = 0.08  # max change of pitch cmd per step
+        self.yaw_boost_avoid    = 1.3   # turn a bit harder during avoidance
+        self.avoid_offset       = 1.5   # meters to sidestep right
+
 
     def init_motors(self):
         self.front_left_motor = self.getDevice("front left propeller")
@@ -98,10 +125,12 @@ class Mavic(Robot):
             (self.target_position[0] - self.current_pose[0]) ** 2 + 
             (self.target_position[1] - self.current_pose[1]) ** 2
         )
-        pitch_disturbance = clamp(
-            self.MAX_PITCH_DISTURBANCE * distance_to_target / 10, 
-            self.MAX_PITCH_DISTURBANCE, 0
-        )
+        k_dist = 0.6  # forward demand per meter
+        pitch_disturbance = clamp(-k_dist * distance_to_target, self.MAX_PITCH_DISTURBANCE, 0.0)
+        # pitch_disturbance = clamp(
+        #     self.MAX_PITCH_DISTURBANCE * distance_to_target / 10, 
+        #     self.MAX_PITCH_DISTURBANCE, 0
+        # )
 
         return yaw_disturbance, pitch_disturbance
         
@@ -251,7 +280,7 @@ class Mavic(Robot):
         self.target_position[2] = np.arctan2(
             self.target_position[1] - self.current_pose[1], self.target_position[0] - self.current_pose[0])
         # This is now in ]-2pi;2pi[
-        angle_left = self.target_position[2] - self.current_pose[5]
+        angle_left = self.target_position[2] - self.current_pose[3]
         # Normalize turn angle to ]-pi;pi]
         angle_left = (angle_left + 2 * np.pi) % (2 * np.pi)
         if (angle_left > np.pi):
@@ -285,16 +314,22 @@ class Mavic(Robot):
         roll_velocity = self.gyro.getValues()[0]
         pitch_velocity = self.gyro.getValues()[1]
         pitch_disturbance = 0
-        yaw_disturbance = 0
-        roll_disturbance = -1.0
-        # Compute roll, pitch, yaw, and vertical inputs
-        roll_input = k_roll_p * clamp(roll, -1.0, 1.0) + roll_velocity + roll_disturbance
+        yaw_disturbance = 0     # ← keep zero; don't steer to “move right”
+        roll_disturbance = -clamp(speed_difference, 0.0, 1.0)  # scale 0..1
+
+        roll_input  = k_roll_p  * clamp(roll, -1.0, 1.0)  + roll_velocity  + roll_disturbance
         pitch_input = k_pitch_p * clamp(pitch, -1.0, 1.0) + pitch_velocity + pitch_disturbance
-        yaw_input = speed_difference  # Use speed_difference to create the right turn
+        yaw_input   = 0.0  # ← no yaw for lateral sidestep
 
         clamped_difference_altitude = clamp(target_altitude - altitude + k_vertical_offset, -1.0, 1.0)
         vertical_input = k_vertical_p * pow(clamped_difference_altitude, 3.0)
 
+        if abs(roll) > 1.0 or abs(pitch) > 1.0:  # ~57°
+            yaw_input = 0.0
+            pitch_input = 0.0
+            roll_input = 0.0
+            # slightly increase vertical to stabilize
+        
         # Actuate the motors considering all the computed inputs
         front_left_motor_input = (k_vertical_thrust + vertical_input - roll_input + pitch_input - yaw_input)
         front_right_motor_input = (k_vertical_thrust + vertical_input + roll_input + pitch_input + yaw_input)
@@ -307,107 +342,202 @@ class Mavic(Robot):
         self.rear_left_motor.setVelocity(-rear_left_motor_input)
         self.rear_right_motor.setVelocity(rear_right_motor_input)
 
+    def _start_avoidance(self, suggested_alt):
+        yaw = self.current_pose[3]
+        right = np.array([-math.sin(yaw), math.cos(yaw)])
+        offset = 1.5 * right  # a bit wider sidestep helps
+        self.avoid_goal_xy = [self.current_pose[0] + offset[0],
+                            self.current_pose[1] + offset[1]]
+        self.avoid_goal_alt = suggested_alt
+        self.avoiding = True
+
+        # --- one-time bookkeeping (no spam) ---
+        self._avoid_id += 1
+        self._avoid_started_t = self.getTime()
+        gpsv = self.gps.getValues()
+        self._alt_at_avoid_start = gpsv[self.alt_index]
+        self._other_alt_start = gpsv[1 if self.alt_index == 2 else 2]
+
+
+    def _rate_limit(self, new, old, step):
+        dv = new - old
+        if dv > step:  return old + step
+        if dv < -step: return old - step
+        return new
+
+        
+    def _sat(self, v, lo=0.0, hi=200.0):  # tune hi to your model
+        return max(lo, min(hi, v))
 
         
     def run(self):
-        t1 = self.getTime()
-
-        roll_disturbance = 0
-        pitch_disturbance = 0
-        yaw_disturbance = 0
-
-        # Specify the patrol coordinates
-        #waypoints = [[-30, 20], [-60, 20], [-60, 10], [-30, 5]]
+        # --- patrol scaffolding (same as before / lightweight) ---
         waypoints = [np.random.randint(-2, 2, 2).tolist() for _ in range(50)]
-        # target altitude of the robot in meters
-        self.random_altitude=[round(np.random.uniform(2, 4), 1) for _ in range(50)]
-        self.alt_counter=0
+        self.random_altitude = [round(np.random.uniform(10, 15), 1) for _ in range(50)]
+        self.alt_counter = 0
         self.target_altitude = self.random_altitude[self.alt_counter]
-        #self.target_altitude = 5
-        alt_count=0
-
-        start=time.time()
+        alt_count = 0
         last_time = 0
-        detected_marker = False
-        while self.step(self.time_step) != -1:
-            
-            #self.com_between_drones()
-            # Read sensors and set position.
-            roll, pitch, yaw = self.imu.getRollPitchYaw()
-            x_pos, y_pos, altitude = self.gps.getValues()
-            roll_acceleration, pitch_acceleration, _ = self.gyro.getValues()
-            self.set_position([x_pos, y_pos, altitude, roll, pitch, yaw])
 
-            collistion_Status = self.getCustomData()
-            if collistion_Status != "0":   
-                # If collision detected
-                #print("Collision detected from controller")
-                
-                temp_collistion_Status = [float(i) for i in collistion_Status.split(" ")]
-                #print("Collision detected from controller: ", temp_collistion_Status)
-                self.target_altitude = temp_collistion_Status[2]
-                self.move_right_by_motor_control(0.2, temp_collistion_Status[2])
-                self.set_position([temp_collistion_Status[0:2]])
-                
-                continue
+        # smoothing state
+        if not hasattr(self, "_ys"):
+            self._ys = 0.0   # smoothed yaw command
+            self._ps = 0.0   # smoothed pitch command
+
+        while self.step(self.time_step) != -1:
+            # --- sensors ---
+            roll, pitch, yaw = self.imu.getRollPitchYaw()
+            gpsv = self.gps.getValues()
+            x_pos, y_pos = gpsv[0], gpsv[1]
+            # altitude will be selected later via self.alt_index (3)
+            roll_accel, pitch_accel, _ = self.gyro.getValues()
+            self.set_position([x_pos, y_pos, gpsv[2], yaw, pitch, roll])
+
+            # --- defaults each frame ---
+            yaw_disturbance = 0.0
+            pitch_disturbance = 0.0
+
+            # --- read supervisor flag robustly ---
+            col = (self.getCustomData() or "0").strip()   # e.g. "0" or "nx ny nz"
+            collision_active = (col != "0")
+
+            nx = ny = 0.0
+            nz = self.target_altitude
+            if collision_active:
+                try:
+                    nx, ny, nz = map(float, col.split())
+                except Exception:
+                    nz = self.target_altitude  # malformed payload -> ignore altitude change
+
+            # --- avoidance vs normal targeting ---
+            if self.avoiding or collision_active:
+                # Start avoidance once per event
+                if collision_active and not self.avoiding:
+                    # (4) Bias altitude if suggested change is too small (±0.8 m)
+                    if abs(nz - self.target_altitude) < 0.2:
+                        dz = 0.8 if (getattr(self, "id", 0) % 2 == 0) else -0.8
+                        nz = self.target_altitude + dz
+                    self._start_avoidance(nz)
+                    # one-time info (no per-step spam)
+                    try:
+                        print(f"[AVOID#{self._avoid_id} id={getattr(self,'id','?')}] start alt_target={nz:.2f}")
+                    except Exception:
+                        pass
+
+                # Fly to the sidestep waypoint (stable), slew altitude toward avoid_goal_alt
+                self.target_position[0:2] = self.avoid_goal_xy
+                if self.avoid_goal_alt is not None:
+                    dz = self.avoid_goal_alt - self.target_altitude
+                    if abs(dz) > self.alt_slew_rate:
+                        self.target_altitude += self.alt_slew_rate * np.sign(dz)
+                    else:
+                        self.target_altitude = self.avoid_goal_alt
+
+                # Compute heading/forward demand toward sidestep
+                yaw_disturbance, pitch_disturbance = self.compute_movement()
+
+                # If supervisor flag cleared, keep avoiding until we reach sidestep
+                if not collision_active:
+                    dx = self.current_pose[0] - self.avoid_goal_xy[0]
+                    dy = self.current_pose[1] - self.avoid_goal_xy[1]
+                    if math.hypot(dx, dy) < self.avoid_reach_eps:
+                        self.avoiding = False
+                        self.avoid_goal_alt = None
+
             else:
-                roll_disturbance = 0.0
+                # --- NORMAL / MARKER LOGIC ---
                 if not self.marker_detected:
-                    if altitude > self.target_altitude - 1:
-                        current_time = self.getTime()
-                        #elf.update_sinusoidal_waypoints(current_time)
-                        #print("Current time: ", current_time)
-                        if int(current_time) % 2 == 0 and alt_count < 50 and int(current_time) != last_time:
-                            # print("Current time: ", current_time)
-                            # print("Current altitude: ", altitude)
-                            # print("Target altitude: ", self.target_altitude)
+                    current_time = self.getTime()
+                    if gpsv[self.alt_index] > self.target_altitude - 1:
+                        if int(current_time) % 2 == 0 and alt_count < len(self.random_altitude) and int(current_time) != last_time:
                             self.target_altitude = self.random_altitude[alt_count]
                             self.target_position[0:2] = waypoints[alt_count]
-                            alt_count+=1
+                            alt_count += 1
                             last_time = int(current_time)
                         else:
                             self.update_sinusoidal_waypoints(current_time)
-                        #yaw_disturbance,pitch_disturbance = self.move_to_target(waypoints)
-                        #self.update_linear_waypoints(waypoints)
                         yaw_disturbance, pitch_disturbance = self.compute_movement()
                     else:
-                        yaw_disturbance = 0
-                        pitch_disturbance = 0
+                        yaw_disturbance = 0.0
+                        pitch_disturbance = 0.0
                 else:
-                    # Move towards the marker position and land
+                    # Marker mode: fly to marker then land
                     self.target_position[0:2] = self.marker_position
                     yaw_disturbance, pitch_disturbance = self.move_to_target([self.marker_position])
-                    if abs(self.current_pose[0] - self.marker_position[0]) < 0.5 and abs(self.current_pose[1] - self.marker_position[1]) < 0.5:
+                    if (abs(self.current_pose[0] - self.marker_position[0]) < 0.5 and
+                        abs(self.current_pose[1] - self.marker_position[1]) < 0.5):
                         print("Landing on the marker.")
-                        #print("Marker position: ", self.marker_position)
-                        #print("Current position: ", self.current_pose[0:2])
-                        self.land(altitude)
+                        self.land(gpsv[self.alt_index])
                         break
 
-                # Detect marker and switch to marker mode if found.
+                # Detect marker (no spam)
                 if not self.marker_detected and self.detect_aruco_marker():
                     print("Marker detected, switching to marker mode.")
                     print("Marker position: ", self.marker_position)
                     self.marker_detected = True
 
-                # Movement logic using 'yaw_disturbance', 'pitch_disturbance', etc.
-                roll_input = self.K_ROLL_P * clamp(roll, -1, 1) + roll_acceleration + roll_disturbance
-                pitch_input = self.K_PITCH_P * clamp(pitch, -1, 1) + pitch_acceleration + pitch_disturbance
-                yaw_input = yaw_disturbance
-                clamped_difference_altitude = clamp(self.target_altitude - altitude + self.K_VERTICAL_OFFSET, -1, 1)
-                vertical_input = self.K_VERTICAL_P * pow(clamped_difference_altitude, 3.0)
+            # === COMMON: smoothing (always runs) ===
+            alpha = 0.2
+            self._ys = (1.0 - alpha) * self._ys + alpha * yaw_disturbance
+            raw_ps = (1.0 - alpha) * self._ps + alpha * pitch_disturbance
+            self._ps = raw_ps  # keep simple here (no governor)
 
-                front_left_motor_input = self.K_VERTICAL_THRUST + vertical_input - yaw_input + pitch_input - roll_input
-                front_right_motor_input = self.K_VERTICAL_THRUST + vertical_input + yaw_input + pitch_input + roll_input
-                rear_left_motor_input = self.K_VERTICAL_THRUST + vertical_input + yaw_input - pitch_input - roll_input
-                rear_right_motor_input = self.K_VERTICAL_THRUST + vertical_input - yaw_input - pitch_input + roll_input
+            # === (3) ALTITUDE + VERTICAL CONTROL WITH TILT COMPENSATION ===
+            # Select altitude axis (assume self.alt_index is set in __init__, default 2)
+            altitude = self.gps.getValues()[self.alt_index]
+            dt = self.time_step / 1000.0
+            if getattr(self, "_alt_prev", None) is None:
+                vz = 0.0
+            else:
+                vz = (altitude - self._alt_prev) / dt
+            self._alt_prev = altitude
 
-                if math.isnan(front_left_motor_input) or math.isnan(front_right_motor_input) or math.isnan(rear_left_motor_input) or math.isnan(rear_right_motor_input):
-                    print("NaN value detected. Changing them to 0.")
-                    for motor in self.motors:
-                        motor.setVelocity(0.0)
-                    #break
-                self.front_left_motor.setVelocity(front_left_motor_input)
-                self.front_right_motor.setVelocity(-front_right_motor_input)
-                self.rear_left_motor.setVelocity(-rear_left_motor_input)
-                self.rear_right_motor.setVelocity(rear_right_motor_input)
+            # Auto-switch altitude axis if avoidance started and our "altitude" doesn't move,
+            # while the other axis does (Z<->Y swap). Check once ~0.8s after avoid start.
+            if self.avoiding and (self.getTime() - getattr(self, "_avoid_started_t", 0.0)) > 0.8:
+                alt_now = self.gps.getValues()[self.alt_index]
+                other_idx = 1 if self.alt_index == 2 else 2
+                other_now = self.gps.getValues()[other_idx]
+                if (abs(alt_now - getattr(self, "_alt_at_avoid_start", alt_now)) < 0.05 and
+                    abs(other_now - getattr(self, "_other_alt_start", other_now)) > 0.10):
+                    self.alt_index = other_idx
+                    self._alt_prev = None  # reset derivative
+                    try:
+                        print(f"[ROB:{getattr(self,'id','?')}] switched altitude axis to index {self.alt_index}")
+                    except Exception:
+                        pass
+                    # refresh altitude with new axis
+                    altitude = self.gps.getValues()[self.alt_index]
+
+            # Vertical PD: P on altitude error + D on vertical speed
+            alt_err = self.target_altitude - altitude
+            alt_err = clamp(alt_err, -2.0, 2.0)
+            vertical_input = self.K_VERTICAL_P * alt_err - getattr(self, "K_VERTICAL_D", 3.0) * vz
+
+            # Tilt-compensated hover thrust
+            tilt_comp = math.cos(roll) * math.cos(pitch)
+            tilt_comp = max(0.5, tilt_comp)  # avoid division by tiny numbers
+            hover_thrust = self.K_VERTICAL_THRUST / tilt_comp
+
+            # === Motor mixing (always runs) ===
+            roll_input  = self.K_ROLL_P  * clamp(roll,  -1.0, 1.0) + roll_accel
+            pitch_input = self.K_PITCH_P * clamp(pitch, -1.0, 1.0) + pitch_accel + self._ps
+            yaw_input   = self._ys
+
+            fl = hover_thrust + vertical_input - yaw_input + pitch_input - roll_input
+            fr = hover_thrust + vertical_input + yaw_input + pitch_input + roll_input
+            rl = hover_thrust + vertical_input + yaw_input - pitch_input - roll_input
+            rr = hover_thrust + vertical_input - yaw_input - pitch_input + roll_input
+
+            # NaN guard
+            if any(math.isnan(v) for v in (fl, fr, rl, rr)):
+                for m in self.motors:
+                    m.setVelocity(0.0)
+                continue
+
+            # Clamp + send
+            fl = self._sat(fl); fr = self._sat(fr); rl = self._sat(rl); rr = self._sat(rr)
+            self.front_left_motor.setVelocity(fl)
+            self.front_right_motor.setVelocity(-fr)
+            self.rear_left_motor.setVelocity(-rl)
+            self.rear_right_motor.setVelocity(rr)

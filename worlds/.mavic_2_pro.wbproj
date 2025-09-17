@@ -13,9 +13,9 @@ globalOptionalRendering: AllBoundingObjects
 consoles: Console:All:All
 renderingDevicePerspectives: Mavic 2 PRO(1):camera;0;1;0.41313;0.438312
 renderingDevicePerspectives: Mavic 2 PRO(2):camera;0;1;0;0
-renderingDevicePerspectives: Mavic 2 PRO(3):camera;0;1;0;0
-renderingDevicePerspectives: Mavic 2 PRO(4):camera;0;1;0;0
-renderingDevicePerspectives: Mavic 2 PRO(5):camera;0;1;0;0
-renderingDevicePerspectives: Mavic 2 PRO(6):camera;0;1;0;0
-renderingDevicePerspectives: Mavic 2 PRO(7):camera;0;1;0;0
-renderingDevicePerspectives: Mavic 2 PRO:camera;0;0.789639;0.468374;0.717532
+renderingDevicePerspectives: Mavic 2 PRO(3):camera;0;0.4275;0.319455;0
+renderingDevicePerspectives: Mavic 2 PRO(4):camera;0;0.425;0.459567;0
+renderingDevicePerspectives: Mavic 2 PRO(5):camera;0;0.4225;0.596479;0
+renderingDevicePerspectives: Mavic 2 PRO(6):camera;0;0.415;0.733388;0
+renderingDevicePerspectives: Mavic 2 PRO(7):camera;0;0.25018;0.867094;0
+renderingDevicePerspectives: Mavic 2 PRO:camera;0;0.500109;0.468374;0.717532

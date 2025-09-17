@@ -77,7 +77,8 @@ class SuperMavic(Supervisor):
     
     def change_bbox(self):
         speed_vector = self.mavic.getVelocity()[0:3]
-        
+        # speed_value = np.linalg.norm(speed_vector)
+        # print(f"Speed vector: {speed_vector}, Speed value: {speed_value}")
         self.orientation = self.mavic.getOrientation()
         self.x_orientation = [self.orientation[0], self.orientation[3], self.orientation[6]]
         self.y_orientation = [self.orientation[1], self.orientation[4], self.orientation[7]]
@@ -337,13 +338,13 @@ class SuperMavic(Supervisor):
         
     def run(self):
         No_of_drones = 8
-        time_step= 50 #50, 100, 250, 500, 1000
+        time_step= 250 #50, 100, 250, 500, 1000
         self.scale_factor = 1 #0.125, 0.25, 0.5, 1 but also have to change the normalization
         self.collision_count = 0
         self.collision_detected_count = 0
         
-        with open(f"{self.nameDef}_timing_with_timestep_{time_step}_and_no_normal_No_of_drones_{No_of_drones}.txt", "w") as file:
-            file.write("Timing log for each step:\n")
+        # with open(f"{self.nameDef}_timing_with_timestep_{time_step}_and_no_normal_No_of_drones_{No_of_drones}.txt", "w") as file:
+        #     file.write("Timing log for each step:\n")
         
         while self.step(self.time_step) != -1:
 
@@ -361,16 +362,15 @@ class SuperMavic(Supervisor):
                 
                 self.check_collisions()
                     
-                self.simulationResetPhysics()
                 end = time.time()
             
-                with open(f"{self.nameDef}_collision_count_with_timestep_{time_step}_and_no_normal_No_of_drones_{No_of_drones}.txt", "w") as file:
-                    file.write(f"Collision count:{self.collision_count}\n")
-                    file.write(f"Possible collision detected count:{self.collision_detected_count}")
+                # with open(f"{self.nameDef}_collision_count_with_timestep_{time_step}_and_no_normal_No_of_drones_{No_of_drones}.txt", "w") as file:
+                #     file.write(f"Collision count:{self.collision_count}\n")
+                #     file.write(f"Possible collision detected count:{self.collision_detected_count}")
             
                 self.step(time_step)
-                with open(f"{self.nameDef}_timing_with_timestep_{time_step}_and_no_normal_No_of_drones_{No_of_drones}.txt", "a") as file:
-                    file.write(f"{end-start}\n")
+                # with open(f"{self.nameDef}_timing_with_timestep_{time_step}_and_no_normal_No_of_drones_{No_of_drones}.txt", "a") as file:
+                #     file.write(f"{end-start}\n")
                     
                 if self.isNAN:
                     break
