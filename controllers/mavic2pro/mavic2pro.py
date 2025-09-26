@@ -16,10 +16,10 @@ class Mavic(Robot):
     K_VERTICAL_THRUST = 68.5  # with this thrust, the drone lifts.
     K_VERTICAL_OFFSET = 0.6   # Vertical offset where the robot actually targets to stabilize itself.
     K_VERTICAL_P = 2.3        # P constant of the vertical PID.
-    K_ROLL_P = 60.0           # P constant of the roll PID.
-    K_PITCH_P = 45.0          # P constant of the pitch PID.
+    K_ROLL_P = 50.0           # P constant of the roll PID.
+    K_PITCH_P = 35.0          # P constant of the pitch PID.
     MAX_YAW_DISTURBANCE = 0.8
-    MAX_PITCH_DISTURBANCE = -3.0
+    MAX_PITCH_DISTURBANCE = -5.0
     target_precision = 0.15    # Precision between the target position and the robot position in meters
 
     def __init__(self):
@@ -35,7 +35,7 @@ class Mavic(Robot):
         self.sinusoidal_path_amplitude = 20  # Increased amplitude
         self.sinusoidal_path_frequency = 0.5
         self.marker_detected = False
-        self.marker_position = [0, 0]
+        self.marker_position = [0, 0, 0]
         self.target_index = 0
         self.landed = False
         
@@ -46,7 +46,7 @@ class Mavic(Robot):
         self.avoid_reach_eps = 0.4  # m, how close before we clear avoidance
         
         # --- altitude/vertical control ---
-        self.K_VERTICAL_D = 3.0        # derivative gain on vertical speed (tune 2.0–5.0)
+        self.K_VERTICAL_D = 3.8        # derivative gain on vertical speed (tune 2.0–5.0)
         self.alt_index = 2             # assume Z-up first; we auto-switch if wrong
         self._alt_prev = None          # last altitude sample
         self.alt_slew_rate = 0.08      # faster slew so changes are visible during avoidance
@@ -125,7 +125,7 @@ class Mavic(Robot):
             (self.target_position[0] - self.current_pose[0]) ** 2 + 
             (self.target_position[1] - self.current_pose[1]) ** 2
         )
-        k_dist = 0.6  # forward demand per meter
+        k_dist = 1.0  # forward demand per meter
         pitch_disturbance = clamp(-k_dist * distance_to_target, self.MAX_PITCH_DISTURBANCE, 0.0)
         # pitch_disturbance = clamp(
         #     self.MAX_PITCH_DISTURBANCE * distance_to_target / 10, 
@@ -156,7 +156,7 @@ class Mavic(Robot):
 
             # Convert pixel coordinates to world coordinates
             x_world, y_world = self.pixel_to_world(marker_center[0], marker_center[1])
-            self.marker_position = [x_world, y_world]
+            self.marker_position = [x_world, y_world, 0]
             return True  # Marker with the specified ID is detected
         return False
 
@@ -366,7 +366,7 @@ class Mavic(Robot):
         return new
 
         
-    def _sat(self, v, lo=0.0, hi=200.0):  # tune hi to your model
+    def _sat(self, v, lo=0.0, hi=400.0):  # tune hi to your model
         return max(lo, min(hi, v))
 
         
@@ -477,10 +477,10 @@ class Mavic(Robot):
                     self.marker_detected = True
 
             # === COMMON: smoothing (always runs) ===
-            alpha = 0.2
+            alpha = 0.35
             self._ys = (1.0 - alpha) * self._ys + alpha * yaw_disturbance
             raw_ps = (1.0 - alpha) * self._ps + alpha * pitch_disturbance
-            self._ps = raw_ps  # keep simple here (no governor)
+            self._ps = self._rate_limit(raw_ps, getattr(self, "_ps", 0.0), self.pitch_cmd_rate)
 
             # === (3) ALTITUDE + VERTICAL CONTROL WITH TILT COMPENSATION ===
             # Select altitude axis (assume self.alt_index is set in __init__, default 2)
